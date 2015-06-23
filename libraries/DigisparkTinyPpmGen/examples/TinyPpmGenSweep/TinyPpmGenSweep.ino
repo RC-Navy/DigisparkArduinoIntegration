@@ -9,7 +9,7 @@ This sketch can work with a Digispark pro, Digispark and Arduino UNO.
 PPM output pin is imposed by hardware and is target dependant:
 (The user has to define Timer and Channel to use in TinyPpmGen.h file of the library)
        - ATtiny167 (Digispark pro):
-         TIMER(0), CHANNEL(A) -> OC0A -> PB0 -> Pin#0
+         TIMER(0), CHANNEL(A) -> OC0A -> PA2 -> Pin#8
 
        - ATtiny85 (Digispark):
          TIMER(0), CHANNEL(A) -> OC0A -> PB0 -> Pin#0
