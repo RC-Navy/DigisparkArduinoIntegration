@@ -15,6 +15,7 @@ Supported Arduinos:
 ------------------
 * **ATtiny167 (Standalone or Digispark pro)**
 * **ATtiny85 (Standalone or Digispark)**
+* **ATtiny84 (Standalone)**
 * **ATmega368P (UNO)**
 * **ATmega32U4 (Arduino Leonardo, Micro and Pro Micro)**
 
@@ -36,7 +37,13 @@ With:
 	* **_Width_us_**: the pulse width in µs
 
 * **uint8_t TinyPpmGen.isSynchro()**:
-	* PPM Synchronization indicator: indicates that the pulse values have just been recorded for the current PPM frame generation and gives 20 ms for preparing next pulse widths. This allows to pass digital information over PPM (one different pulse width per PPM frame). This is a "clear on read" fonction (no need to clear explicitely the indicator).
+	* PPM Synchronization indicator: indicates that the pulse values have just been recorded for the current PPM frame generation and gives 20 ms for preparing next pulse widths. This allows to pass digital information over PPM (one different pulse width per PPM frame). This is a "clear on read" function (no need to clear explicitely the indicator).
+
+* **void TinyPpmGen.suspend()**:
+	* Suspends the PPM frame generation.
+
+* **void TinyPpmGen.resume()**:
+	* Resumes the PPM frame generation.
 
 Design considerations:
 ---------------------
@@ -51,6 +58,10 @@ However, there is some flexibility as the timer and the channel can be chosen by
 	* TIMER(0), CHANNEL(A) -> OC0A -> PB0 -> Pin#0
 	* TIMER(0), CHANNEL(B) -> OC0B -> PB1 -> Pin#1
 	* TIMER(1), CHANNEL(A) -> OC1A -> PB1 -> Pin#1
+
+* **ATtiny84**   (Standalone):
+	* TIMER(0), CHANNEL(A) -> OC0A -> PB2 -> Pin#5 | Digital 8 : D8
+	* TIMER(0), CHANNEL(B) -> OC0B -> PA7 -> Pin#6 | Digital 7 : D7
 
 * **ATmega328P** (Arduino UNO):
 	* TIMER(0), CHANNEL(A) -> OC0A -> PD6 -> Pin#6

@@ -13,6 +13,8 @@ TinyPpmGen	KEYWORD1
 begin	KEYWORD2
 setChWidth_us	KEYWORD2
 isSynchro	KEYWORD2
+suspend	KEYWORD2
+resume	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)

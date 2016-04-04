@@ -10,11 +10,15 @@
    - Supported devices: (The user has to define Timer and Channel to use in TinyPpmGen.h file of the library)
        - ATtiny167 (Digispark pro):
          TIMER(0), CHANNEL(A) -> OC0A -> PA2 -> Pin#8
-
+         
        - ATtiny85 (Digispark):
          TIMER(0), CHANNEL(A) -> OC0A -> PB0 -> Pin#0
          TIMER(0), CHANNEL(B) -> OC0B -> PB1 -> Pin#1
          TIMER(1), CHANNEL(A) -> OC1A -> PB1 -> Pin#1
+         
+       - ATtiny84 (Ext. Clock. 16MHz) -> Fuses: LF:0xFE, HF:0xDF, EF: 0xFF 
+         TIMER(0), CHANNEL(A) -> OC0A -> PB2 -> Pin#5 | Digital 8 : D8
+         TIMER(0), CHANNEL(B) -> OC0B -> PA7 -> Pin#6 | Digital 7 : D7
          
        - ATmega328P (Arduino UNO):
          TIMER(0), CHANNEL(A) -> OC0A -> PD6 -> Pin#6
@@ -34,6 +38,7 @@ RC Navy 2015
    06/04/2015: RcTxPop support added (allows to create a virtual serial port over a PPM channel)
    09/11/2015: Bug in setChWidth_us() fixed and RAM size optimized (2 bytes per channel saved)
    31/01/2016: Support for ATmega32U4 (Arduino Leonardo, Micro and Pro Micro) added
+   04/04/2016: Support for ATtiny84, suspend() and resume() methods added by Flavian Iliescu
 */
 #include <TinyPpmGen.h>
 
@@ -78,18 +83,40 @@ RC Navy 2015
 #endif
 
 #ifdef __AVR_ATtiny167__
-#if ((OC_TIMER == TIMER(0)) && (OC_CHANNEL == CHANNEL(A)))
-#define PPM_WF_REG                 CONCAT3(TCCR,  OC_TIMER, A)
-#define PPM_CS_REG                 CONCAT3(TCCR,  OC_TIMER, B)
-#define PPM_CM_REG                 CONCAT3(TCCR,  OC_TIMER, A)
-#define PPM_FORCE_REG              CONCAT3(TCCR,  OC_TIMER, B)
-#define TIM_MODE_NORMAL()          (PPM_WF_REG &= ~(_BV(WGM01) | _BV(WGM00)));(PPM_CS_REG = _BV(CS02))
-#define PPM_OC_INT_MSK_REG         TIMSK0
-#define PPM_PORT                   A
-#define PIN_BIT                    2
+ #if ((OC_TIMER == TIMER(0)) && (OC_CHANNEL == CHANNEL(A)))
+  #define PPM_WF_REG                 CONCAT3(TCCR,  OC_TIMER, A)
+  #define PPM_CS_REG                 CONCAT3(TCCR,  OC_TIMER, B)
+  #define PPM_CM_REG                 CONCAT3(TCCR,  OC_TIMER, A)
+  #define PPM_FORCE_REG              CONCAT3(TCCR,  OC_TIMER, B)
+  #define TIM_MODE_NORMAL()          (PPM_WF_REG &= ~(_BV(WGM01) | _BV(WGM00)));(PPM_CS_REG = _BV(CS02))
+  #define PPM_OC_INT_MSK_REG         TIMSK0
+  #define PPM_PORT                   A
+  #define PIN_BIT                    2
+ #else
+  #error TinyPpmGen SHALL use Timer0 and ChannelA for ATtiny167 !!!
+ #endif
+
 #else
-#error TinyPpmGen SHALL use Timer0 and ChannelA for ATtiny167 !!!
-#endif
+
+#ifdef __AVR_ATtiny84__
+ #if (OC_TIMER == TIMER(0))
+  #define PPM_WF_REG               CONCAT3(TCCR, OC_TIMER, A)
+  #define PPM_CS_REG               CONCAT3(TCCR, OC_TIMER, B)
+  #define PPM_CM_REG               CONCAT3(TCCR, OC_TIMER, A)
+  #define PPM_FORCE_REG            CONCAT3(TCCR, OC_TIMER, B)
+  #define TIM_MODE_NORMAL()        (PPM_WF_REG &= ~(_BV(WGM01) | _BV(WGM00))); (PPM_CS_REG = (_BV(CS01) | _BV(CS00)))
+  #define PPM_OC_INT_MSK_REG       TIMSK0  
+  #if (OC_CHANNEL == CHANNEL(A))
+   #define PPM_PORT B
+   #define PIN_BIT  2
+  #else
+   #define PPM_PORT A
+   #define PIN_BIT  7
+  #endif
+ #else
+  #error TinyPpmGen SHALL use Timer0 and ChannelA or ChannelB for ATtiny84  !!!
+ #endif
+     
 #else
 #ifdef  __AVR_ATtiny85__
 #if (OC_TIMER == TIMER(0))
@@ -170,10 +197,11 @@ RC Navy 2015
 #warning CHANNEL(B)
   #endif
 #else
-  #error TinyPpmGen SHALL use Timer0 for ATtmega32U4 !!!
+  #error TinyPpmGen SHALL use Timer0 for ATmega32U4 !!!
 #endif
 #else
 #error This target is not supported (yet) by the TinyPpmGen library!!!
+#endif
 #endif
 #endif
 #endif
@@ -184,7 +212,12 @@ RC Navy 2015
 #define PPM_OC_PIN                 CONCAT2(PIN, PPM_PORT)
 #define PPM_OC_PIN_MSK             (1 << PIN_BIT)
 
-#define COMP_VECT                  CONCAT5(TIMER, OC_TIMER, _COMP, OC_CHANNEL_LETTER, _vect)
+#ifdef __AVR_ATtiny84__
+ #define COMP_VECT                  CONCAT5(TIM,   OC_TIMER, _COMP, OC_CHANNEL_LETTER, _vect)
+#else
+ #define COMP_VECT                  CONCAT5(TIMER, OC_TIMER, _COMP, OC_CHANNEL_LETTER, _vect)
+#endif
+
 #define PPM_OCR                    CONCAT3(OCR,   OC_TIMER, OC_CHANNEL_LETTER)
 #define OCIE_MASK                  _BV(CONCAT3(OCIE, OC_TIMER, OC_CHANNEL_LETTER))
 #define OC_FORCE_MASK              _BV(CONCAT3(FOC,  OC_TIMER, OC_CHANNEL_LETTER))
@@ -210,7 +243,7 @@ RC Navy 2015
                                     delay(1);\
                                     }\
                                     PPM_OC_FORCE();\
-TCNT0=0;\
+                                    TCNT0=0;\
                                   }while(0)
 
 #define FULL_OVF_MASK             0x7F
@@ -383,6 +416,17 @@ uint8_t OneTinyPpmGen::isSynchro(uint8_t SynchroClientMsk /*= TINY_PPM_GEN_CLIEN
   
   return(Ret);
 }
+
+void OneTinyPpmGen::suspend(void)
+{
+  PPM_OC_INT_DISABLE();
+}
+
+void OneTinyPpmGen::resume(void)
+{
+  PPM_OC_INT_ENABLE();
+}
+
 /* Begin of RcTxPop support */
 uint8_t OneTinyPpmGen::RcTxPopIsSynchro()
 {

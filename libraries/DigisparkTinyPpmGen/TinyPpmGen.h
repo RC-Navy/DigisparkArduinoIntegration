@@ -12,11 +12,15 @@
    - Supported devices: (The user has to define Timer and Channel to use in TinyPpmGen.h file of the library)
        - ATtiny167 (Digispark pro):
          TIMER(0), CHANNEL(A) -> OC0A -> PA2 -> Pin#8
-
+         
        - ATtiny85 (Digispark):
          TIMER(0), CHANNEL(A) -> OC0A -> PB0 -> Pin#0
          TIMER(0), CHANNEL(B) -> OC0B -> PB1 -> Pin#1
          TIMER(1), CHANNEL(A) -> OC1A -> PB1 -> Pin#1
+         
+       - ATtiny84 (Ext. Clock. 16MHz) -> Fuses: LF:0xFE, HF:0xDF, EF: 0xFF 
+         TIMER(0), CHANNEL(A) -> OC0A -> PB2 -> Pin#5 | Digital 8 : D8
+         TIMER(0), CHANNEL(B) -> OC0B -> PA7 -> Pin#6 | Digital 7 : D7
          
        - ATmega328P (Arduino UNO):
          TIMER(0), CHANNEL(A) -> OC0A -> PD6 -> Pin#6
@@ -36,6 +40,7 @@ RC Navy 2015
    06/04/2015: RcTxPop support added (allows to create a virtual serial port over a PPM channel)
    09/11/2015: Bug in setChWidth_us() fixed and RAM size optimized (2 bytes per channel saved)
    31/01/2016: Support for ATmega32U4 (Arduino Leonardo, Micro and Pro Micro) added
+   04/04/2016: Support for ATtiny84, suspend() and resume() methods added by Flavian Iliescu
 */
 #include <Arduino.h>
 #include <RcTxPop.h>
@@ -63,6 +68,12 @@ TIMER(0), CHANNEL(A) -> OC0A -> PB0 -> Pin#0  Test: OK
 TIMER(0), CHANNEL(B) -> OC0B -> PB1 -> Pin#1  Test: OK
 TIMER(1), CHANNEL(A) -> OC1A -> PB1 -> Pin#1  Test: OK
 TIMER(1), CHANNEL(B) -> OC1B -> PB4 -> Pin#4  Test: Does NOT work for an unknown reason (Do NOT use it for now)
+
+
+ ATtiny84 (Ext. Clock. 16MHz)
+ =========================
+ TIMER(0), CHANNEL(A) -> OC0A -> PB2 -> Pin#5 Test: OK
+ TIMER(0), CHANNEL(B) -> OC0B -> PA7 -> Pin#6 Test: OK
 
 ATmega328P (UNO):
 ================
@@ -107,6 +118,8 @@ class OneTinyPpmGen : public RcTxPop
     uint8_t begin(uint8_t PpmModu, uint8_t ChNb, uint16_t PpmPeriod_us = DEFAULT_PPM_PERIOD);
     void    setChWidth_us(uint8_t Ch, uint16_t Width_us);
     uint8_t isSynchro(uint8_t SynchroClientMsk = TINY_PPM_GEN_CLIENT(7)); /* Default value: 8th Synchro client -> 0 to 6 free for other clients*/
+    void    suspend(void);
+    void    resume(void);
     /* RcTxPop support */
     virtual uint8_t  RcTxPopIsSynchro();
     virtual void     RcTxPopSetWidth_us(uint16_t Width_us, uint8_t Ch = 255);
