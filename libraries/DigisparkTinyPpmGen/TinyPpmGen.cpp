@@ -420,10 +420,12 @@ uint8_t OneTinyPpmGen::isSynchro(uint8_t SynchroClientMsk /*= TINY_PPM_GEN_CLIEN
 void OneTinyPpmGen::suspend(void)
 {
   PPM_OC_INT_DISABLE();
+  TOGGLE_PPM_PIN_DISABLE();
 }
 
 void OneTinyPpmGen::resume(void)
 {
+  TOGGLE_PPM_PIN_ENABLE();
   PPM_OC_INT_ENABLE();
 }
 
