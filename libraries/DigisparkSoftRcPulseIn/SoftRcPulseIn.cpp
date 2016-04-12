@@ -8,22 +8,16 @@
  V1.2: (06/04/2015) RcRxPop support added (allows to create a virtual serial port over a PPM channel)
  Francais: par RC Navy (2012-2015)
  ========
- <SoftRcPulseIn>: une librairie asynchrone pour lire les largeur d'impulsions des Radio-Commandes standards. Cette librairie est une version non bloquante de pulsIn().
+ <SoftRcPulseIn>: une librairie asynchrone pour lire les largeur d'impulsions des Radio-Commandes standards. Cette librairie est une version non bloquante de pulseIn().
  http://p.loussouarn.free.fr
  V1.0: release initiale
  V1.1: support de timeout asynchrone ajoutee (jusqu'a 250ms)
  V1.2: (06/04/2015) Support RcRxPop ajoute (permet de creer un port serie virtuel par dessus une voie PPM)
+ V1.3: (12/04/2016) boolean type replaced by uint8_t and version management replaced by constants
 */
 
 #include "SoftRcPulseIn.h"
 
-#define LIB_VERSION                    1
-#define LIB_REVISION                   2
-
-#define STR(s)						#s
-#define MAKE_TEXT_VER_REV(Ver,Rev)	STR(Ver)"."STR(Rev)
-
-#define LIB_TEXT_VERSION_REVISION	MAKE_TEXT_VER_REV(LIB_VERSION,LIB_REVISION) /* Make Full version as a string "Ver.Rev" */
 
 SoftRcPulseIn *SoftRcPulseIn::first;
 
@@ -52,24 +46,9 @@ uint8_t Ret = 0;
 	return(Ret);
 }
 
-int SoftRcPulseIn::LibVersion(void)
-{
-  return(LIB_VERSION);
-}
-
-int SoftRcPulseIn::LibRevision(void)
-{
-  return(LIB_REVISION);
-}
-
-char *SoftRcPulseIn::LibTextVersionRevision(void)
-{
-  return(LIB_TEXT_VERSION_REVISION);
-}
-
 uint8_t SoftRcPulseIn::available(void)
 {
-boolean Ret=0;
+uint8_t Ret=0;
 uint16_t PulseWidth_us;
 
   if(_Available)
@@ -82,8 +61,9 @@ uint16_t PulseWidth_us;
   }
   return(Ret);
 }
+
 #ifdef SOFT_RC_PULSE_IN_TIMEOUT_SUPPORT
-boolean SoftRcPulseIn::timeout(uint8_t TimeoutMs, uint8_t *CurrentState)
+uint8_t SoftRcPulseIn::timeout(uint8_t TimeoutMs, uint8_t *CurrentState)
 {
   uint8_t CurMs, Ret = 0;
 
@@ -96,6 +76,7 @@ boolean SoftRcPulseIn::timeout(uint8_t TimeoutMs, uint8_t *CurrentState)
   return(Ret);
 }
 #endif
+
 uint16_t SoftRcPulseIn::width_us(void)
 {
 uint16_t PulseWidth_us;

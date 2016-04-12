@@ -65,7 +65,7 @@ void setup()
   
   MyDbgSerial.begin(SERIAL_BAUD_RATE); //Do NOT forget to setup your terminal at same baud rate (eg: arduino IDE serial monitor)
   MyDbgSerial.txMode();     //Before sending a message, switch to txMode
-  MyDbgSerial.print(F("SoftRcPulseIn lib V"));MyDbgSerial.print(SoftRcPulseIn::LibTextVersionRevision());MyDbgSerial.println(F(" demo"));
+  MyDbgSerial.print(F("SoftRcPulseIn lib V"));MyDbgSerial.print(SOFT_RC_PULSE_IN_VERSION);MyDbgSerial.print(F("."));MyDbgSerial.print(SOFT_RC_PULSE_IN_REVISION);MyDbgSerial.println(F(" demo"));
 }
 
 void loop()

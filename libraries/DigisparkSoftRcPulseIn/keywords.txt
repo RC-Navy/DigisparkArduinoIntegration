@@ -11,9 +11,6 @@ SoftRcPulseIn	KEYWORD1
 #######################################
 # Methods and Functions (KEYWORD2)
 #######################################
-LibVersion	KEYWORD2
-LibRevision	KEYWORD2
-LibTextVersionRevision	KEYWORD2
 attach	KEYWORD2
 attache	KEYWORD2
 available	KEYWORD2
@@ -25,3 +22,5 @@ largeur_us	KEYWORD2
 #######################################
 # Constants (LITERAL1)
 #######################################
+SOFT_RC_PULSE_IN_VERSION	LITERAL1
+SOFT_RC_PULSE_IN_REVISION	LITERAL1

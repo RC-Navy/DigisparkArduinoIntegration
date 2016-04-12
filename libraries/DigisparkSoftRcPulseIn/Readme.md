@@ -30,9 +30,10 @@ API/methods:
 * available()
 * width_us()
 * timeout()
-* LibVersion()
-* LibRevision()
-* LibTextVersionRevision()
+
+* Constants for version management:
+	* **SOFT_RC_PULSE_IN_VERSION**: returns the library version
+	* **SOFT_RC_PULSE_IN_REVISION**: returns the library revision
 
 Design considerations:
 ---------------------

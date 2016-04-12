@@ -56,7 +56,7 @@ void setup()
 {
 #if !defined(__AVR_ATtiny24__) && !defined(__AVR_ATtiny44__) && !defined(__AVR_ATtiny84__) && !defined(__AVR_ATtiny25__) && !defined(__AVR_ATtiny45__) && !defined(__AVR_ATtiny85__) && !defined(__AVR_ATtiny167__)
   Serial.begin(9600);
-  Serial.print("SoftRcPulseIn library V");Serial.print(SoftRcPulseIn::LibTextVersionRevision());Serial.print(" demo"); /* For arduino UNO which has an hardware UART, display the library version in the console */
+    Serial.print(F("SoftRcPulseIn lib V"));Serial.print(SOFT_RC_PULSE_IN_VERSION);Serial.print(F("."));Serial.print(SOFT_RC_PULSE_IN_REVISION);Serial.println(F(" demo"));
 #endif
   RxChannelPulse.attach(RX_CHANNEL_PIN);
   ServoMotor[NORMAL].attach(SERVO1_PIN);   /* enumeration is used a index for the ServoMotor[] table */
