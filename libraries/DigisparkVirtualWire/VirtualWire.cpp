@@ -270,7 +270,7 @@ void vw_pll()
 // Returns prescaler index into {0, 0, 3, 6, 8, 10, 12} array
 // and sets nticks to compare-match value if lower than max_ticks
 // returns 0 & nticks = 0 on fault
-uint8_t prescalers[] PROGMEM = {0, 0, 3, 6, 8, 10, 12}; /* Must be outside the function */
+uint8_t const prescalers[] PROGMEM = {0, 0, 3, 6, 8, 10, 12}; /* Must be outside the function */
 uint8_t _timer_calc(uint16_t speed, uint16_t max_ticks, uint16_t *nticks)
 {
     // Clock divider (prescaler) values - 0/4096: error flag
@@ -341,7 +341,7 @@ void vw_setup(uint16_t speed)
     uint16_t nticks; // number of prescaled ticks needed
     uint8_t prescaler; // Bit values for CS0[2:0]
 
-#ifdef __AVR_ATtiny85__
+#if defined(__AVR_ATtiny85__)
     // figure out prescaler value and counter match value
     prescaler = _timer_calc(speed, (uint8_t)-1, &nticks);
     if (!prescaler)
@@ -361,6 +361,27 @@ void vw_setup(uint16_t speed)
 
     // Set mask to fire interrupt when OCF0A bit is set in TIFR0
     TIMSK |= _BV(OCIE0A);
+
+#elif defined(__AVR_ATtiny84__)
+    // figure out prescaler value and counter match value
+    prescaler = _timer_calc(speed, (uint8_t)-1, &nticks);
+    if (!prescaler)
+    {
+        return; // fault
+    }
+
+    TCCR1A = 0; // Clear WGM11, WGM10 to turn on CTC mode / Output Compare pins disconnected
+
+    // convert prescaler index to TCCRnB prescaler bits CS12, CS11, CS10
+    TCCR1B  = _BV(WGM12);//Clear WGM12 to turn on CTC mode
+    TCCR1B |= prescaler; // set CS12, CS11, CS10 (taken care of other bits)
+
+    // Number of ticks to count before firing interrupt
+    OCR1A = nticks;
+
+    // Set mask to fire interrupt when OCF0A bit is set in TIFR0
+    TIMSK1 |= _BV(OCIE1A);
+
 #else // ARDUINO
     // This is the path for most Arduinos
     // figure out prescaler value and counter match value
@@ -572,10 +593,11 @@ uint8_t vw_get_message(uint8_t* buf, uint8_t* len)
 //ISR(SIG_OUTPUT_COMPARE1A)
 #if defined (ARDUINO) // Arduino specific
 
-#ifdef __AVR_ATtiny85__
+#if defined(__AVR_ATtiny85__)
 ISR(TIM0_COMPA_vect, ISR_NOBLOCK)
+#elif defined(__AVR_ATtiny84__)
+ISR(TIM1_COMPA_vect, ISR_NOBLOCK)
 #else // Assume Arduino Uno (328p or similar)
-
 SIGNAL(TIMER1_COMPA_vect)
 #endif // __AVR_ATtiny85__
 
