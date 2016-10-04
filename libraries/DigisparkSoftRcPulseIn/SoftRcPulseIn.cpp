@@ -5,14 +5,14 @@
  http://p.loussouarn.free.fr
  V1.0: initial release
  V1.1: asynchronous timeout support added (up to 250ms)
- V1.2: (06/04/2015) RcRxPop support added (allows to create a virtual serial port over a PPM channel)
+ V1.2: (06/04/2015) Rcul support added (allows to create a virtual serial port over a PPM channel)
  Francais: par RC Navy (2012-2015)
  ========
  <SoftRcPulseIn>: une librairie asynchrone pour lire les largeur d'impulsions des Radio-Commandes standards. Cette librairie est une version non bloquante de pulseIn().
  http://p.loussouarn.free.fr
  V1.0: release initiale
  V1.1: support de timeout asynchrone ajoutee (jusqu'a 250ms)
- V1.2: (06/04/2015) Support RcRxPop ajoute (permet de creer un port serie virtuel par dessus une voie PPM)
+ V1.2: (06/04/2015) Support Rcul ajoute (permet de creer un port serie virtuel par dessus une voie PPM)
  V1.3: (12/04/2016) boolean type replaced by uint8_t and version management replaced by constants
 */
 
@@ -86,18 +86,24 @@ uint16_t PulseWidth_us;
   return(PulseWidth_us);  
 }
 
-/* Begin of RcRxPop support */
-uint8_t SoftRcPulseIn::RcRxPopIsSynchro()
+/* Begin of Rcul support */
+uint8_t SoftRcPulseIn::RculIsSynchro()
 {
   return(available());
 }
 
-uint16_t SoftRcPulseIn::RcRxPopGetWidth_us(uint8_t Ch)
+uint16_t SoftRcPulseIn::RculGetWidth_us(uint8_t Ch)
 {
   Ch = Ch; /* To avoid a compilation warning */
   return(width_us());
 }
-/* End of RcRxPop support */
+
+void     SoftRcPulseIn::RculSetWidth_us(uint16_t Width_us, uint8_t Ch /*= 255*/)
+{
+  Width_us = Width_us; /* To avoid a compilation warning */
+  Ch = Ch;             /* To avoid a compilation warning */
+}
+/* End of Rcul support */
 
 void SoftRcPulseIn::SoftRcPulseInInterrupt(void)
 {

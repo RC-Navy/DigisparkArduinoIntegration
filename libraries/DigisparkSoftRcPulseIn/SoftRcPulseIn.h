@@ -3,13 +3,13 @@
  =======
  <SoftRcPulseIn>: an asynchronous library to read Input Pulse Width from standard Hobby Radio-Control. This library is a non-blocking version of pulseIn().
  http://p.loussouarn.free.fr
- V1.2: (06/04/2015) Support RcRxPop ajoute (permet de creer un port serie virtuel par dessus une voie PPM)
+ V1.2: (06/04/2015) Support Rcul ajoute (permet de creer un port serie virtuel par dessus une voie PPM)
 
  Francais: par RC Navy (2012-2015)
  ========
  <SoftRcPulseIn>: une librairie asynchrone pour lire les largeur d'impulsions des Radio-Commandes standards. Cette librairie est une version non bloquante de pulsIn().
  http://p.loussouarn.free.fr
- 06/04/2015: RcRxPop support added (allows to create a virtual serial port over a PPM channel)
+ 06/04/2015: Rcul support added (allows to create a virtual serial port over a PPM channel)
  V1.3: (12/04/2016) boolean type replaced by uint8_t and version management replaced by constants
 */
 
@@ -18,16 +18,16 @@
 
 #include "Arduino.h"
 #include <TinyPinChange.h>
-#include <RcRxPop.h>
+#include <Rcul.h>
 
 #include <inttypes.h>
 
 #define SOFT_RC_PULSE_IN_TIMEOUT_SUPPORT
 
 #define SOFT_RC_PULSE_IN_VERSION                    1
-#define SOFT_RC_PULSE_IN_REVISION                   3
+#define SOFT_RC_PULSE_IN_REVISION                   4
 
-class SoftRcPulseIn : public RcRxPop
+class SoftRcPulseIn : public Rcul
 {
   public:
     SoftRcPulseIn();
@@ -36,15 +36,16 @@ class SoftRcPulseIn : public RcRxPop
     uint8_t      available();
     uint8_t      timeout(uint8_t TimeoutMs, uint8_t *State);
     uint16_t     width_us();
-    /* RcRxPop support */
-    virtual uint8_t  RcRxPopIsSynchro();
-    virtual uint16_t RcRxPopGetWidth_us(uint8_t Ch);
+    /* Rcul support */
+    virtual uint8_t  RculIsSynchro();
+    virtual uint16_t RculGetWidth_us(uint8_t Ch);
+    virtual void     RculSetWidth_us(uint16_t Width_us, uint8_t Ch = 255);
     private:
     class SoftRcPulseIn  *next;
     static SoftRcPulseIn *first;
     uint8_t _Pin;
     uint8_t _PinMask;
-    uint8_t _VirtualPortIdx;
+    int8_t  _VirtualPortIdx;
     uint16_t _Min_us;
     uint16_t _Max_us;
     uint32_t _Start_us;
