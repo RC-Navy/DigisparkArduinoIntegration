@@ -77,12 +77,12 @@ B) Command from a ON/OFF switch:
 
 #include <RcSeq.h>
 
+#include <Rcul.h>
+
 #include <TinyPinChange.h>
 #include <SoftRcPulseIn.h>
-#include <RcRxPop.h>
 
 #include <SoftRcPulseOut.h>
-#include <RcTxPop.h>
 
 /*****************************************************************/
 /* STEP #2: Enumeration of the RC Signals used in the sequence   */

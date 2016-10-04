@@ -96,7 +96,7 @@
 #define NO_POS                         255
 
 /* The macro below computes how many refresh to perform while a duration in ms */
-#define REFRESH_NB(DurationMs)         ((DurationMs)/REFRESH_INTERVAL_MS)
+#define REFRESH_NB(DurationMs)         ((DurationMs) / REFRESH_INTERVAL_MS)
 
 /* The motion goes from StartInUs to EndInUs and will take MotionDurationMs in ms */
 #define STEP_IN_US_PER_REFRESH(StartInUs, EndInUs, MotionDurationMs)  (EndInUs - StartInUs) / REFRESH_NB(MotionDurationMs)
@@ -131,6 +131,8 @@ Pos 0     1     2     3     4
 #else
 #define ALLOC_DEPENDENT_SERVO_MAX_NB    SOFT_RC_PULSE_OUT_INSTANCE_MAX_NB
 #endif
+
+#define IS_EEPROM_SEQUENCE(Sequence)    (((uint16_t)(Sequence) & EEP_SEQ_INDICATOR) == EEP_SEQ_INDICATOR)
 
 typedef struct {
   int8_t   InProgress;
@@ -193,6 +195,7 @@ static CmdSequenceSt_t    *CmdSequence = NULL;
 /*************************************************************************
 					PRIVATE FUNCTION PROTOTYPES
 *************************************************************************/
+static void *memcpy_E(void* RamDst, uint16_t EepAddr, uint8_t Len);
 static uint8_t ExecuteSequence(uint8_t CmdIdx, uint8_t Pos);
 #ifdef RC_SEQ_WITH_SOFT_RC_PULSE_IN_SUPPORT
 static int8_t GetPos(uint8_t ChIdx, uint16_t PulseWidthUs);
@@ -203,6 +206,12 @@ void RcSeq_Init(void)
 {
 	SeqNb = 0;
 	ServoNb = 0;
+#ifdef RC_SEQ_WITH_SOFT_RC_PULSE_OUT_SUPPORT
+	for(uint8_t ServoIdx = 0; ServoIdx < ALLOC_DEPENDENT_SERVO_MAX_NB; ServoIdx++)
+	{
+		ServoAttrib[ServoIdx].SeqLineInProgress = NO_SEQ_LINE;
+	}
+#endif
 #ifdef RC_SEQ_WITH_SOFT_RC_PULSE_IN_SUPPORT
 	for(uint8_t ChIdx = 0; ChIdx < RC_CMD_MAX_NB; ChIdx++)
 	{
@@ -294,15 +303,16 @@ void RcSeq_DeclareCustomKeyboard(uint8_t ChIdx, const KeyMap_t *KeyMapTbl, uint8
 #endif
 //========================================================================================================================
 #ifdef RC_SEQ_CONTROL_SUPPORT
-void RcSeq_DeclareCommandAndSequence(uint8_t CmdIdx,uint8_t Pos, const SequenceSt_t *Table, uint8_t SequenceLength, uint8_t(*Control)(uint8_t Action, uint8_t SeqIdx))
+void RcSeq_DeclareCommandAndSequence(uint8_t CmdIdx, uint8_t Pos, const SequenceSt_t *Table, uint8_t SequenceLength, uint8_t(*Control)(uint8_t Action, uint8_t SeqIdx))
 #else
-void RcSeq_DeclareCommandAndSequence(uint8_t CmdIdx,uint8_t Pos, const SequenceSt_t *Table, uint8_t SequenceLength)
+void RcSeq_DeclareCommandAndSequence(uint8_t CmdIdx, uint8_t Pos, const SequenceSt_t *Table, uint8_t SequenceLength)
 #endif
 {
-uint8_t  Idx, ServoPin;
-int8_t   ServoIdx;
-uint16_t StartInUs;
-uint32_t StartMinMs[ALLOC_DEPENDENT_SERVO_MAX_NB];
+uint8_t            Idx;
+int8_t             ServoIdx;
+uint32_t           StartMinMs[ALLOC_DEPENDENT_SERVO_MAX_NB];
+SequenceSt_t       *SequenceTable;
+CommonSequenceSt_t OneSeqLine;
 #ifndef RC_SEQ_WITH_STATIC_MEM_ALLOC_SUPPORT
 	if(!CmdSequence) CmdSequence = (CmdSequenceSt_t*)malloc(sizeof(CmdSequenceSt_t));
 	else             CmdSequence = (CmdSequenceSt_t*)realloc(CmdSequence, sizeof(CmdSequenceSt_t) * (SeqNb + 1));
@@ -318,6 +328,7 @@ uint32_t StartMinMs[ALLOC_DEPENDENT_SERVO_MAX_NB];
 			CmdSequence[Idx].Pos = Pos;
 			CmdSequence[Idx].TableOrShortAction = (void*)Table;
 			CmdSequence[Idx].SequenceLength = SequenceLength;
+			CmdSequence[Idx].InProgress = 0;
 #ifdef RC_SEQ_CONTROL_SUPPORT
 			CmdSequence[Idx].Control = Control;
 #endif
@@ -327,7 +338,8 @@ uint32_t StartMinMs[ALLOC_DEPENDENT_SERVO_MAX_NB];
 		}
 	}
 #endif
-	
+#warning RcSeq: servo init disabled!
+#if 0
 #ifdef RC_SEQ_WITH_SOFT_RC_PULSE_OUT_SUPPORT
 	/* Get initial pulse width for each Servo */
 	for(Idx = 0; Idx < ALLOC_DEPENDENT_SERVO_MAX_NB; Idx++)
@@ -336,23 +348,40 @@ uint32_t StartMinMs[ALLOC_DEPENDENT_SERVO_MAX_NB];
 	}
 	for(Idx = 0; Idx < SequenceLength; Idx++)
 	{
-		ServoPin = (int8_t)PGM_READ_8(Table[Idx].ServoPin);
-		ServoIdx = SoftRcPulseOut::getIdByPin(ServoPin);
-		if(ServoPin != 255)
+		if(IS_EEPROM_SEQUENCE(CmdSequence[CmdIdx].TableOrShortAction))
 		{
-			if((uint32_t)PGM_READ_32(Table[Idx].StartMotionOffsetMs) <= StartMinMs[ServoIdx])
+			Serial.println(F("Seq Line in Eeprom"));
+			memcpy_E((void *)&OneSeqLine, ((uint16_t)CmdSequence[CmdIdx].TableOrShortAction - EEP_SEQ_INDICATOR) + (Idx * sizeof(CommonSequenceSt_t)), sizeof(CommonSequenceSt_t));
+		}
+		else
+		{
+			Serial.println(F("Seq Line in Flash"));
+			SequenceTable = (SequenceSt_t *)CmdSequence[CmdIdx].TableOrShortAction; /* /!\ Eeprom do not support ShortAction /!\ */
+			memcpy_P((void *)&OneSeqLine, (void*)&SequenceTable[Idx], sizeof(CommonSequenceSt_t));
+		}
+#if 1
+Serial.print(F("SeqLine.ServoPin="));Serial.println(OneSeqLine.ServoPin);
+Serial.print(F("SeqLine.StartInUs="));Serial.println(OneSeqLine.StartInUs);
+Serial.print(F("SeqLine.EndInUs="));Serial.println(OneSeqLine.EndInUs);
+Serial.print(F("SeqLine.StartMotionOffsetMs="));Serial.println(OneSeqLine.StartMotionOffsetMs);
+Serial.print(F("SeqLine.MotionDurationMs="));Serial.println(OneSeqLine.MotionDurationMs);
+#endif
+		if(OneSeqLine.ServoPin != 255)
+		{
+			ServoIdx = SoftRcPulseOut::getIdByPin(OneSeqLine.ServoPin);
+			if(OneSeqLine.StartMotionOffsetMs <= StartMinMs[ServoIdx])
 			{
-				StartMinMs[ServoIdx] = (uint32_t)PGM_READ_32(Table[Idx].StartMotionOffsetMs);
-				StartInUs = (uint16_t)PGM_READ_16(Table[Idx].StartInUs);
+				StartMinMs[ServoIdx] = OneSeqLine.StartMotionOffsetMs;
 #ifdef RC_SEQ_WITH_STATIC_MEM_ALLOC_SUPPORT
 				Servo = (SoftRcPulseOut *)&ServoTbl[ServoIdx];
 #else
 				Servo = SoftRcPulseOut::softRcPulseOutById(ServoIdx);
 #endif
-				Servo->write_us(StartInUs);
+				Servo->write_us(OneSeqLine.StartInUs);
 			}
 		}
 	}
+#endif
 #endif
 }
 #ifdef RC_SEQ_CONTROL_SUPPORT
@@ -381,6 +410,7 @@ uint8_t Idx;
 			CmdSequence[Idx].Pos = Pos;
 			CmdSequence[Idx].TableOrShortAction = (void*)ShortAction;
 			CmdSequence[Idx].SequenceLength = 0;
+			CmdSequence[Idx].InProgress = 0;
 #ifdef RC_SEQ_WITH_STATIC_MEM_ALLOC_SUPPORT
 			SeqNb++;
 			break;
@@ -394,7 +424,7 @@ uint8_t Idx;
 uint8_t RcSeq_LaunchSequence(const SequenceSt_t *Table)
 {
 uint8_t Idx, Ret = 0;
-	for(Idx = 0; Idx < SEQUENCE_MAX_NB; Idx++)
+	for(Idx = 0; Idx < min(SeqNb, SEQUENCE_MAX_NB); Idx++)
 	{
 		if(CmdSequence[Idx].TableOrShortAction == (void*)Table)
 		{
@@ -405,21 +435,34 @@ uint8_t Idx, Ret = 0;
 	return(Ret);
 }
 //========================================================================================================================
+uint8_t RcSeq_IsSequenceInProgress(const SequenceSt_t *Table)
+{
+uint8_t Idx, Ret = 0;
+	for(Idx = 0; Idx < min(SeqNb, SEQUENCE_MAX_NB); Idx++)
+	{
+		if(CmdSequence[Idx].TableOrShortAction == (void*)Table)
+		{
+			Ret = CmdSequence[Idx].InProgress;
+			break;
+		}
+	}
+	return(Ret);
+}
+//========================================================================================================================
 void RcSeq_Refresh(void)
 {
-static uint32_t NowMs = millis();
-static uint32_t StartChronoInterPulseMs = millis();
-SequenceSt_t   *SequenceTable;
-void           (*ShortAction)(void);
-int8_t          ShortActionCnt;
-uint8_t         ServoPin, ServoIdx;
-uint32_t        MotionDurationMs, StartOfSeqMs, EndOfSeqMs, PosUs;
-uint16_t        StartInUs, EndInUs;
-
+static uint32_t    StartChronoInterPulseMs = millis();
+uint32_t           NowMs;
+SequenceSt_t       *SequenceTable;
+void               (*ShortAction)(void);
+int8_t             ShortActionCnt;
+uint8_t            ServoIdx;
+uint32_t           MotionDurationMs, StartOfSeqMs, EndOfSeqMs, PosUs;
+CommonSequenceSt_t OneSeqLine;
 #ifdef RC_SEQ_WITH_SOFT_RC_PULSE_IN_SUPPORT
-uint8_t         ChIdx;
-int8_t          CmdPos; /* Shall be signed */
-uint32_t        RcPulseWidthUs;
+uint8_t            ChIdx;
+int8_t             CmdPos; /* Shall be signed */
+uint32_t           RcPulseWidthUs;
 
 	/* Asynchronous RC Command acquisition */
 	for(ChIdx = 0; ChIdx < CmdSignalNb; ChIdx++)
@@ -454,6 +497,7 @@ uint32_t        RcPulseWidthUs;
     if((NowMs - StartChronoInterPulseMs) >= 20UL)
     {
 		/* We arrive here every 20 ms */
+		StartChronoInterPulseMs = millis(); /* Restart Chrono */
 		/* Asynchronous Servo Sequence management */
 		for(int8_t Idx = 0; Idx < SeqNb; Idx++)
 		{
@@ -461,16 +505,29 @@ uint32_t        RcPulseWidthUs;
 			ShortActionCnt = -1;
 			for(int8_t SeqLine = 0; SeqLine < CmdSequence[Idx].SequenceLength; SeqLine++) /* Read all lines of the sequence table: this allows to run several servos simultaneously (not forcibly one after the other) */
 			{
-				SequenceTable = (SequenceSt_t *)CmdSequence[Idx].TableOrShortAction;
-				ServoPin = (int8_t)PGM_READ_8(SequenceTable[SeqLine].ServoPin);
+#if 1
+//Serial.print(F("RcSeq SeqIdx="));Serial.print(Idx);Serial.print(F(" SeqLine="));Serial.println(SeqLine);
+				SequenceTable = NULL;
+				if(IS_EEPROM_SEQUENCE(CmdSequence[Idx].TableOrShortAction))
+				{
+//				  Serial.println(F("Seq in Eeprom"));
+				  memcpy_E((void *)&OneSeqLine, ((uint16_t)CmdSequence[Idx].TableOrShortAction - EEP_SEQ_INDICATOR) + (SeqLine * sizeof(CommonSequenceSt_t)), sizeof(CommonSequenceSt_t));
+				}
+				else
+				{
+//				  Serial.println(F("Seq in Flash"));
+				  SequenceTable = (SequenceSt_t *)CmdSequence[Idx].TableOrShortAction; /* /!\ Eeprom do not support ShortAction /!\ */
+				  memcpy_P((void *)&OneSeqLine, (void*)&SequenceTable[SeqLine], sizeof(CommonSequenceSt_t));
+				}
+#endif
 #ifdef RC_SEQ_WITH_SOFT_RC_PULSE_OUT_SUPPORT
-				ServoIdx = SoftRcPulseOut::getIdByPin(ServoPin);
+				ServoIdx = SoftRcPulseOut::getIdByPin(OneSeqLine.ServoPin);
 #endif
 #ifdef RC_SEQ_WITH_SHORT_ACTION_SUPPORT
-				if(ServoPin == 255) /* Not a Servo: it's a short Action to perform only if not already done */
+				if((OneSeqLine.ServoPin == 255) && SequenceTable) /* Not a Servo: it's a short Action to perform only if not already done */
 				{
 					ShortActionCnt++;
-					StartOfSeqMs = CmdSequence[Idx].StartChronoMs + (int32_t)PGM_READ_32(SequenceTable[SeqLine].StartMotionOffsetMs);
+					StartOfSeqMs = CmdSequence[Idx].StartChronoMs + OneSeqLine.StartMotionOffsetMs;
 					if( (NowMs >= StartOfSeqMs) && !TST_BIT(CmdSequence[Idx].ShortActionMap, ShortActionCnt) )
 					{
 						ShortAction = (void(*)(void))PGM_READ_16(SequenceTable[SeqLine].ShortAction);
@@ -491,8 +548,8 @@ uint32_t        RcPulseWidthUs;
 				{
 					continue;
 				}
-				StartOfSeqMs = CmdSequence[Idx].StartChronoMs + (int32_t)PGM_READ_32(SequenceTable[SeqLine].StartMotionOffsetMs);
-				MotionDurationMs = (int32_t)PGM_READ_16(SequenceTable[SeqLine].MotionDurationMs);
+				StartOfSeqMs = CmdSequence[Idx].StartChronoMs + OneSeqLine.StartMotionOffsetMs;
+				MotionDurationMs = (int32_t)OneSeqLine.MotionDurationMs;
 				EndOfSeqMs = StartOfSeqMs + MotionDurationMs;
 #ifdef RC_SEQ_WITH_STATIC_MEM_ALLOC_SUPPORT
 				Servo = (SoftRcPulseOut *)&ServoTbl[ServoIdx];
@@ -504,18 +561,15 @@ uint32_t        RcPulseWidthUs;
 					if( (NowMs >= StartOfSeqMs) && (NowMs <= EndOfSeqMs) )
 					{
 						ServoAttrib[ServoIdx].SeqLineInProgress = SeqLine;
-						StartInUs = (uint16_t)PGM_READ_16(SequenceTable[SeqLine].StartInUs);
-						ServoAttrib[ServoIdx].RefreshNb = REFRESH_NB(MotionDurationMs);
-						Servo->write_us(StartInUs);
+						ServoAttrib[ServoIdx].RefreshNb = REFRESH_NB(OneSeqLine.MotionDurationMs);
+						Servo->write_us(OneSeqLine.StartInUs);
 					}
 				}
 				else
 				{
 					/* A sequence line is in progress: update the next position */
 					if(ServoAttrib[ServoIdx].RefreshNb) ServoAttrib[ServoIdx].RefreshNb--;
-					StartInUs = (uint16_t)PGM_READ_16(SequenceTable[SeqLine].StartInUs);
-					EndInUs = (uint16_t)PGM_READ_16(SequenceTable[SeqLine].EndInUs);
-					PosUs = /*(uint16_t)*/((int32_t)EndInUs - ((int32_t)ServoAttrib[ServoIdx].RefreshNb * STEP_IN_US_PER_REFRESH((int32_t)StartInUs, (int32_t)EndInUs, (int32_t)MotionDurationMs))); //For refresh max nb, Pos = StartInUs
+					PosUs = /*(uint16_t)*/((int32_t)OneSeqLine.EndInUs - ((int32_t)ServoAttrib[ServoIdx].RefreshNb * STEP_IN_US_PER_REFRESH((int32_t)OneSeqLine.StartInUs, (int32_t)OneSeqLine.EndInUs, (int32_t)OneSeqLine.MotionDurationMs))); //For refresh max nb, Pos = StartInUs
 					Servo->write_us(PosUs);
 					if( !ServoAttrib[ServoIdx].RefreshNb )
 					{
@@ -523,6 +577,7 @@ uint32_t        RcPulseWidthUs;
 						/* Last servo motion and refresh = 0  ->  End of Sequence */
 						if(SeqLine == (CmdSequence[Idx].SequenceLength - 1))
 						{
+#warning RcSeq: here inProgress should be cleared only if all the Refreshes have been done
 							CmdSequence[Idx].InProgress = 0;
 							CmdSequence[Idx].ShortActionMap = 0; /* Mark all Short Action as not performed */
 #ifdef RC_SEQ_CONTROL_SUPPORT
@@ -537,13 +592,31 @@ uint32_t        RcPulseWidthUs;
 #ifdef RC_SEQ_WITH_SOFT_RC_PULSE_OUT_SUPPORT
 		SoftRcPulseOut::refresh(1); /* Force Refresh */
 #endif
-		StartChronoInterPulseMs = millis();
     }
 }
 
+void RcSeq_FreeCmdSequence(void)
+{
+  if(SeqNb)
+  {
+    free(CmdSequence);
+    SeqNb = 0;
+  }
+}
 //========================================================================================================================
 // PRIVATE FUNCTIONS
 //========================================================================================================================
+static void *memcpy_E(void* RamDst, uint16_t EepAddr, uint8_t Len)
+{
+  uint8_t Idx, *Dst = (uint8_t*)RamDst;
+  
+  for(Idx = 0; Idx < Len; Idx++)
+  {
+    Dst[Idx] = (uint8_t)eeprom_read_byte((const uint8_t *)(EepAddr + Idx));
+  }
+  return(RamDst);
+}
+
 static uint8_t ExecuteSequence(uint8_t CmdIdx, uint8_t Pos)
 {
 void(*ShortAction)(void);
@@ -597,7 +670,7 @@ uint8_t Idx, Ret = 0;
 static int8_t GetPos(uint8_t ChIdx, uint16_t PulseWidthUs)
 {
 int8_t  Idx, Ret = -1;
-uint16_t PulseMinUs, PulseMaxUs;
+uint16_t PulseMinUs = 600, PulseMaxUs = 2400;
 
     for(Idx = 0; Idx < RcChannel[ChIdx].PosNb; Idx++)
     {

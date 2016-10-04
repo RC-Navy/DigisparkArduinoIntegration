@@ -1,11 +1,11 @@
 #include <RcSeq.h>
 
+#include <Rcul.h>
+
 #include <TinyPinChange.h>
 #include <SoftRcPulseIn.h>
-#include <RcRxPop.h>
 
 #include <SoftRcPulseOut.h>
-#include <RcTxPop.h>
 
 /*
 IMPORTANT:

@@ -76,6 +76,7 @@ API/methods:
 * RcSeq_LaunchSequence()
 * RcSeq_LaunchShortAction()
 * RcSeq_Refresh()
+* RcSeq_IsSequenceInProgress()
 * RcSeq_LibVersion()
 * RcSeq_LibRevision()
 * RcSeq_LibTextVersionRevision()

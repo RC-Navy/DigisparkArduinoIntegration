@@ -56,7 +56,7 @@
 #define RC_SEQ_WITH_SHORT_ACTION_SUPPORT      /* Uncomment this to allows to put call to short action in sequence table */
 #define RC_SEQ_CONTROL_SUPPORT                /* Uncomment this to allow control on sequences: start condition and end of sequence */
 
-#define RC_SEQ_WITH_STATIC_MEM_ALLOC_SUPPORT   /* Comment this line to allow sequences and servos dynamic allocation (number not known by advance) */
+//#define RC_SEQ_WITH_STATIC_MEM_ALLOC_SUPPORT   /* Comment this line to allow sequences and servos dynamic allocation (number not known by advance) */
 
 
 /**********************************************/
@@ -111,8 +111,12 @@ typedef struct {
   uint16_t     EndInUs;
   uint32_t     StartMotionOffsetMs;
   uint16_t     MotionDurationMs;
-  void         (*ShortAction)(void);
-}SequenceSt_t;
+}CommonSequenceSt_t; /* Used for sequences declared in FLASH and in EEPROM */
+
+typedef struct {
+  CommonSequenceSt_t Common;
+  void               (*ShortAction)(void);
+}SequenceSt_t;/* Used for sequences declared in FLASH only */
 
 typedef struct {
   uint16_t  Min;
@@ -129,19 +133,23 @@ typedef struct {
 
 /* Macro to declare a motion WITHOUT soft start and soft stop (to use in "Sequence[]" structure table) */
 #define MOTION_WITHOUT_SOFT_START_AND_STOP(ServoIndex, StartInUs, EndInUs, StartMvtOffsetMs, MvtDurationMs)      \
-  {ServoIndex, StartInUs, EndInUs, StartMvtOffsetMs, MvtDurationMs, NULL},
+                                          {ServoIndex, StartInUs, EndInUs, StartMvtOffsetMs, MvtDurationMs, NULL},
 
 /* Macro to declare a short action (to be used in "Sequence[]" structure table) */
 #define SHORT_ACTION_TO_PERFORM(ShortAction, StartActionOffsetMs) {255, 0, 0, (StartActionOffsetMs), 0L, (ShortAction)},
 
 enum {RC_CMD_STICK=0, RC_CMD_MULTI_POS_SW, RC_CMD_CUSTOM};
+#define EEP_SEQ_INDICATOR                 0xF000
 
-#define RC_SEQUENCE(Sequence)			Sequence, TABLE_ITEM_NBR(Sequence)
-#define RC_CUSTOM_KEYBOARD(KeyMap)		KeyMap, TABLE_ITEM_NBR(KeyMap)
+#define RC_SEQUENCE(Sequence)             Sequence, TABLE_ITEM_NBR(Sequence)
+#define RC_CUSTOM_KEYBOARD(KeyMap)        KeyMap, TABLE_ITEM_NBR(KeyMap)
 
-#define DEG2US(Deg)                            (600 + ((Deg) * 10)) /* 600us for 0°, 1500us for 90°, 2400us for 180° */
+#define DEG2US(Deg)                       (600 + ((Deg) * 10)) /* 600us for 0°, 1500us for 90°, 2400us for 180° */
 
-#define CENTER_VALUE_US(CenterVal,Tol)		((CenterVal)-(Tol)),((CenterVal)+(Tol))
+#define CENTER_VALUE_US(CenterVal,Tol)    ((CenterVal) - (Tol)),((CenterVal) + (Tol))
+
+#define EEPROM_RC_SEQUENCE_ADDR(EepRawSeqAddr) (const SequenceSt_t *)((EepRawSeqAddr) + EEP_SEQ_INDICATOR)
+#define EEPROM_RC_SEQUENCE(EepRawSeqAddr, EepSeqLen) EEPROM_RC_SEQUENCE_ADDR(EepRawSeqAddr), (EepSeqLen)
 
 void    RcSeq_Init(void);
 #ifdef RC_SEQ_WITH_SOFT_RC_PULSE_OUT_SUPPORT
@@ -166,11 +174,14 @@ enum {RC_SEQ_START_CONDITION, RC_SEQ_END_OF_SEQ};
 #endif
 void    RcSeq_DeclareCommandAndSequence(uint8_t CmdIdx,uint8_t Pos, const SequenceSt_t *Table, uint8_t SequenceLength);
 uint8_t RcSeq_LaunchSequence(const SequenceSt_t *Table);
+uint8_t RcSeq_IsSequenceInProgress(const SequenceSt_t *Table);
 #ifdef RC_SEQ_WITH_SHORT_ACTION_SUPPORT
-#define RcSeq_LaunchShortAction(ShortAction)			if(ShortAction) ShortAction()
+#define RcSeq_LaunchShortAction(ShortAction)                               if(ShortAction) ShortAction()
 #endif
 void    RcSeq_Refresh(void);
-
+#ifndef RC_SEQ_WITH_STATIC_MEM_ALLOC_SUPPORT
+void    RcSeq_FreeCmdSequence(void);
+#endif
 /*******************************************************/
 /* Application Programming Interface (API) en Francais */
 /*******************************************************/
@@ -199,5 +210,9 @@ void    RcSeq_Refresh(void);
 #define RcSeq_LanceSequence                     RcSeq_LaunchSequence
 #define RcSeq_LanceActionCourte                 RcSeq_LaunchShortAction
 #define RcSeq_Rafraichit                        RcSeq_Refresh
+#define RcSeq_SequenceEstEnCours                RcSeq_IsSequenceInProgress
+#ifndef RC_SEQ_WITH_STATIC_MEM_ALLOC_SUPPORT
+#define RcSeq_DesalloueCmdSequence              RcSeq_FreeCmdSequence
+#endif
 
 #endif

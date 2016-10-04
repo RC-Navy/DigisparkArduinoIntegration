@@ -37,7 +37,7 @@ static void ToggleLed(void); /* Declare Short Action: Toggle a LED */
 #include <DigiUSB.h> /* The Servo Sequence will be launched by sending "g" character (Go) at the USB interface */
 #include <RcSeq.h>
 #include <SoftRcPulseOut.h>
-#include <RcTxPop.h>
+#include <Rcul.h>
 
 #define LED_PIN                     1
 

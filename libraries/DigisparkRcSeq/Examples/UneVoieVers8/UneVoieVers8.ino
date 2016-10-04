@@ -2,7 +2,7 @@
 
 #include <TinyPinChange.h>  /* Ne pas oublier d'inclure la librairie <TinyPinChange>  qui est utilisee par la librairie <RcSeq> */
 #include <SoftRcPulseIn.h>  /* Ne pas oublier d'inclure la librairie <SoftRcPulseIn>  qui est utilisee par la librairie <RcSeq> */
-#include <RcRxPop.h>        /* Ne pas oublier d'inclure la librairie <RcRxPop>        qui est utilisee par la librairie <SoftRcPulseIn> */
+#include <Rcul.h>        /* Ne pas oublier d'inclure la librairie <Rcul>        qui est utilisee par la librairie <SoftRcPulseIn> */
 
 /*
 IMPORTANT:

@@ -31,13 +31,13 @@ Cette sequence utilise:
 /***************************************************/
 /* ETAPE N°1: Inclure les 4 librairies necessaires */
 /***************************************************/
+#include <Rcul.h>
+
 #include <RcSeq.h>
 #include <TinyPinChange.h>
 #include <SoftRcPulseIn.h>
-#include <RcRxPop.h>
 
 #include <SoftRcPulseOut.h>
-#include <RcTxPop.h>
 
 /*****************************************************/
 /* ETAPE N°2: Enumeration des signaux de commande RC */

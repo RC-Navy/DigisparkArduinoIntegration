@@ -33,7 +33,8 @@ RcSeq_LaunchShortAction		KEYWORD2
 RcSeq_LanceActionCourte		KEYWORD2
 RcSeq_Refresh	KEYWORD2
 RcSeq_Rafraichit	KEYWORD2
-
+RcSeq_IsSequenceInProgress	KEYWORD2
+RcSeq_SequenceEstEnCours	KEYWORD2
 ############################################
 # Constants (LITERAL1)
 ############################################
