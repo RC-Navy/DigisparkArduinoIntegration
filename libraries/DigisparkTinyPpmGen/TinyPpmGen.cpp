@@ -429,17 +429,24 @@ void OneTinyPpmGen::resume(void)
   PPM_OC_INT_ENABLE();
 }
 
-/* Begin of RcTxPop support */
-uint8_t OneTinyPpmGen::RcTxPopIsSynchro()
+/* Begin of Rcul support */
+uint8_t OneTinyPpmGen::RculIsSynchro()
 {
   return(isSynchro(TINY_PPM_GEN_CLIENT(6)));
 }
 
-void OneTinyPpmGen::RcTxPopSetWidth_us(uint16_t Width_us, uint8_t Ch /*= 255*/)
+void OneTinyPpmGen::RculSetWidth_us(uint16_t Width_us, uint8_t Ch /*= 255*/)
 {
   setChWidth_us(Ch, Width_us); /* Take care about argument order (like that, since Ch will be optional for other pulse generator) */
 }
-/* End of RcTxPop support */
+
+uint16_t OneTinyPpmGen::RculGetWidth_us(uint8_t Ch)
+{
+  Ch = Ch; /* To avoid a compilation warning */
+  return(0);
+}
+
+/* End of Rcul support */
 
 SIGNAL(COMP_VECT)
 {

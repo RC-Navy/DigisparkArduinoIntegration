@@ -37,13 +37,13 @@ RC Navy 2015
    31/01/2015: Creation
    14/02/2015: Timer and Channel choices added
    22/03/2015: Configurable PPM period in us added as optional argument in begin() method (default = 20ms)
-   06/04/2015: RcTxPop support added (allows to create a virtual serial port over a PPM channel)
+   06/04/2015: Rcul support added (allows to create a virtual serial port over a PPM channel)
    09/11/2015: Bug in setChWidth_us() fixed and RAM size optimized (2 bytes per channel saved)
    31/01/2016: Support for ATmega32U4 (Arduino Leonardo, Micro and Pro Micro) added
    04/04/2016: Support for ATtiny84, suspend() and resume() methods added by Flavian Iliescu
 */
 #include <Arduino.h>
-#include <RcTxPop.h>
+#include <Rcul.h>
 
 /* Constant definition: /!\ do NOT change this /!\ */
 #define CH_A                           0xA /* /!\ Do NOT change this /!\ */
@@ -55,7 +55,7 @@ RC Navy 2015
 /*                                                                      */
 /************************************************************************/
 #define OC_TIMER      TIMER(0)    /* <-- Choose here the timer   between TIMER(0), TIMER(1) or TIMER(2) */
-#define OC_CHANNEL    CHANNEL(B)  /* <-- Choose here the channel between CHANNEL(A) and CHANNEL(B) */
+#define OC_CHANNEL    CHANNEL(A)  /* <-- Choose here the channel between CHANNEL(A) and CHANNEL(B) */
 
 /*
 ATtiny167 (Digispark pro):
@@ -108,7 +108,7 @@ TIMER(0), CHANNEL(B) -> OC0B -> PD0 -> Pin#3  Test: OK
 /* Macro for PPM Gen client */
 #define TINY_PPM_GEN_CLIENT(ClientIdx) (1 << (ClientIdx)) /* Range: 0 to 7 */
 
-class OneTinyPpmGen : public RcTxPop
+class OneTinyPpmGen : public Rcul
 {
   private:
     // static data
@@ -120,9 +120,10 @@ class OneTinyPpmGen : public RcTxPop
     uint8_t isSynchro(uint8_t SynchroClientMsk = TINY_PPM_GEN_CLIENT(7)); /* Default value: 8th Synchro client -> 0 to 6 free for other clients*/
     void    suspend(void);
     void    resume(void);
-    /* RcTxPop support */
-    virtual uint8_t  RcTxPopIsSynchro();
-    virtual void     RcTxPopSetWidth_us(uint16_t Width_us, uint8_t Ch = 255);
+    /* Rcul support */
+    virtual uint8_t  RculIsSynchro();
+    virtual void     RculSetWidth_us(uint16_t Width_us, uint8_t Ch = 255);
+    virtual uint16_t RculGetWidth_us(uint8_t Ch);
 };
 
 extern OneTinyPpmGen TinyPpmGen; /* Object externalisation */

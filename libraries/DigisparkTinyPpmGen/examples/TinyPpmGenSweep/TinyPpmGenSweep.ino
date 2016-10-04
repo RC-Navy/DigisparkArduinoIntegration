@@ -34,7 +34,7 @@ PPM output pin is imposed by hardware and is target dependant:
 This example code is in the public domain.
 */
 #include <TinyPpmGen.h>
-#include <RcTxPop.h>
+#include <Rcul.h>
 
 #define CH_MAX_NB  4
 
