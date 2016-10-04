@@ -9,12 +9,12 @@
    RC Navy 2015
    http://p.loussouarn.free.fr
    01/02/2015: Creation
-   06/04/2015: RcTxPop support added (allows to create a virtual serial port over a PPM channel)
+   06/04/2015: Rcul support added (allows to create a virtual serial port over a PPM channel)
    09/11/2015: No need to create the TinyPpmReader object anymore, unused _PinMask variable removed
 */
 #include <Arduino.h>
 #include <TinyPinChange.h>
-#include <RcRxPop.h>
+#include <Rcul.h>
 
 #define TINY_PPM_READER_CH_MAX  9
 
@@ -22,7 +22,7 @@
 #define TINY_PPM_READER_CLIENT(ClientIdx) (1 << (ClientIdx)) /* Range: 0 to 7 */
 
 /* Public function prototypes */
-class TinyPpmReaderClass : public RcRxPop
+class TinyPpmReaderClass : public Rcul
 {
   public:
     TinyPpmReaderClass();
@@ -34,9 +34,10 @@ class TinyPpmReaderClass : public RcRxPop
     void     suspend(void);
     void     resume(void);
     static void rcChannelCollectorIsr(void);
-    /* RcRxPop support */
-    virtual uint8_t  RcRxPopIsSynchro();
-    virtual uint16_t RcRxPopGetWidth_us(uint8_t Ch);
+    /* Rcul support */
+    virtual uint8_t  RculIsSynchro();
+    virtual uint16_t RculGetWidth_us(uint8_t Ch);
+    virtual void     RculSetWidth_us(uint16_t Width_us, uint8_t Ch = 255);
   private:
     // static data
     uint8_t  _PpmFrameInputPin;

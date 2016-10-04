@@ -7,7 +7,7 @@
    RC Navy 2015
    http://p.loussouarn.free.fr
    01/02/2015: Creation
-   06/04/2015: RcTxPop support added (allows to create a virtual serial port over a PPM channel)
+   06/04/2015: Rcul support added (allows to create a virtual serial port over a PPM channel)
    09/11/2015: No need to create the TinyPpmReader object anymore, unused _PinMask variable removed
 */
 #include <TinyPpmReader.h>
@@ -129,17 +129,24 @@ uint8_t TinyPpmReaderClass::isSynchro(uint8_t SynchroClientMsk /*= TINY_PPM_READ
   return(Ret);
 }
 
-/* Begin of RcRxPop support */
-uint8_t TinyPpmReaderClass::RcRxPopIsSynchro()
+/* Begin of Rcul support */
+uint8_t TinyPpmReaderClass::RculIsSynchro()
 {
   return(isSynchro(TINY_PPM_READER_CLIENT(6)));
 }
 
-uint16_t TinyPpmReaderClass::RcRxPopGetWidth_us(uint8_t Ch)
+uint16_t TinyPpmReaderClass::RculGetWidth_us(uint8_t Ch)
 {
   return(width_us(Ch));
 }
-/* End of RcRxPop support */
+
+void     TinyPpmReaderClass::RculSetWidth_us(uint16_t Width_us, uint8_t Ch /*= 255*/)
+{
+  Width_us = Width_us; /* To avoid a compilation warning */
+  Ch = Ch;             /* To avoid a compilation warning */
+}
+
+/* End of Rcul support */
 
 void TinyPpmReaderClass::suspend(void)
 {

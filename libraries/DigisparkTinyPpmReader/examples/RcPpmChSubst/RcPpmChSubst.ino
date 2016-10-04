@@ -33,12 +33,12 @@ PPM output pin is imposed by hardware and is target dependant:
          TIMER(2), CHANNEL(B) -> OC2B -> PD3 -> Pin#3
 This example code is in the public domain.
 */
+#include <Rcul.h>
+
 #include <TinyPinChange.h>
 #include <TinyPpmReader.h>
-#include <RcRxPop.h>
 
 #include <TinyPpmGen.h>
-#include <RcTxPop.h>
 
 #define PPM_INPUT_PIN  2
 #define CHANNEL_NB     4
