@@ -28,7 +28,7 @@
 */
 
 #include "Arduino.h"
-#include <RcTxPop.h>
+#include <Rcul.h>
 
 #include <inttypes.h>
 
@@ -37,7 +37,7 @@
 
 #define SOFT_RC_PULSE_OUT_INSTANCE_MAX_NB  15 /* Counter on 4 bits */
 
-class SoftRcPulseOut : public RcTxPop
+class SoftRcPulseOut : public Rcul
 {
   private:
     boolean               ItMasked;
@@ -60,9 +60,10 @@ class SoftRcPulseOut : public RcTxPop
     uint8_t               attached();
     void                  setMinimumPulse(uint16_t);  // pulse length for 0 degrees in microseconds, 540uS default
     void                  setMaximumPulse(uint16_t);  // pulse length for 180 degrees in microseconds, 2400uS default
-    /* RcTxPop support */
-    virtual uint8_t       RcTxPopIsSynchro();
-    virtual void          RcTxPopSetWidth_us(uint16_t Width_us, uint8_t Ch = 255);
+    /* Rcul support */
+    virtual uint8_t       RculIsSynchro();
+    virtual void          RculSetWidth_us(uint16_t Width_us, uint8_t Ch = 255);
+    virtual uint16_t      RculGetWidth_us(uint8_t Ch);
     static int8_t         createInstance(void);   //Allocate dynamically an instance of a SoftRcPulseOut object. Returns the object id.
     static uint8_t        createdInstanceNb(void);//Return the created instance(s) SoftRcPulseOut object.
     static SoftRcPulseOut *softRcPulseOutById(uint8_t ObjIdx);

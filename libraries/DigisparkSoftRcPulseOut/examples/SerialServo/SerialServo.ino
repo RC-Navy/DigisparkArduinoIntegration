@@ -12,7 +12,7 @@
 // B=3 sets Servo2 at 3 x 20 =60°
 
 #include <SoftRcPulseOut.h>
-#include <RcTxPop.h>
+#include <Rcul.h>
 
 SoftRcPulseOut servo1;
 SoftRcPulseOut servo2;

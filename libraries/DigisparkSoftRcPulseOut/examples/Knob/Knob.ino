@@ -4,7 +4,7 @@
 // This sketch can work with ATtiny and Arduino UNO, MEGA, etc...
 
 #include <SoftRcPulseOut.h> 
-#include <RcTxPop.h>
+#include <Rcul.h>
  
 SoftRcPulseOut myservo;  // create servo object to control a servo 
  

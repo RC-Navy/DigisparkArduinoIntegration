@@ -2,7 +2,7 @@
 /*
  Update 01/03/2013: add support for Digispark (http://digistump.com): automatic Timer selection (RC Navy: p.loussouarn.free.fr)
  Update 19/08/2014: usage with write_us and read_us fixed
- Update 06/04/2015: RcTxPop support added (allows to create a virtual serial port over a PPM channel)
+ Update 06/04/2015: Rcul support added (allows to create a virtual serial port over a PPM channel)
  Update 03/06/2015: add support for dynamic object creation/destruction
                    (createInstance, destroyInstance, createdInstanceNbmethods, softRcPulseOutById and getIdByPin methods added)
  
@@ -141,7 +141,7 @@ SoftRcPulseOut *SoftRcPulseOut::softRcPulseOutById(uint8_t ObjIdx)
 
 int8_t SoftRcPulseOut::getIdByPin(uint8_t Pin)
 {
-  int8_t Idx =0, Id = -1;
+  int8_t Idx =  0, Id = -1;
   SoftRcPulseOut *p;
   
   for ( p = first; p != 0; p = p->next )
@@ -218,18 +218,24 @@ uint8_t SoftRcPulseOut::attached()
   return(pin != NOT_ATTACHED);
 }
 
-/* Begin of RcTxPop support */
-uint8_t SoftRcPulseOut::RcTxPopIsSynchro()
+/* Begin of Rcul support */
+uint8_t SoftRcPulseOut::RculIsSynchro()
 {
   return(refresh());
 }
 
-void SoftRcPulseOut::RcTxPopSetWidth_us(uint16_t Width_us, uint8_t Ch /*= 255*/)
+void SoftRcPulseOut::RculSetWidth_us(uint16_t Width_us, uint8_t Ch /*= 255*/)
 {
   Ch = Ch; /* To avoid a warning at compilation time */
   write_us(Width_us);
 }
-/* End of RcTxPop support */
+
+uint16_t SoftRcPulseOut::RculGetWidth_us(uint8_t Ch)
+{
+  Ch = Ch; /* To avoid a compilation warning */
+  return(0);
+}
+/* End of Rcul support */
 
 uint8_t SoftRcPulseOut::refresh(bool force /* = false */)
 {

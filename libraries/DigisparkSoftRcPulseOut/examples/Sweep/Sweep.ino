@@ -5,7 +5,7 @@
 // This example code is in the public domain.
 
 #include <SoftRcPulseOut.h> 
-#include <RcTxPop.h>
+#include <Rcul.h>
  
 SoftRcPulseOut myservo;  // create servo object to control a servo 
                         // a maximum of eight servo objects can be created 

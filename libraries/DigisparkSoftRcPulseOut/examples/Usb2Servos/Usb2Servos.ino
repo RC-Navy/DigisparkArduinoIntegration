@@ -16,7 +16,7 @@
 
 #include <DigiUSB.h>
 #include <SoftRcPulseOut.h>
-#include <RcTxPop.h>
+#include <Rcul.h>
 
 #define LED_PIN       1 /* Builtin Led on Rev2 ModelA Digispark */
 #define SERVO_A_PIN   2

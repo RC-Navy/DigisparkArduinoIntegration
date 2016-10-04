@@ -7,11 +7,12 @@ RC Navy 2013
 http://p.loussouarn.free.fr
 */
 
+#include <Rcul.h>
+
 #include <TinyPinChange.h> /* Needed for <SoftRcPulseIn> library */
 #include <SoftRcPulseIn.h>
-#include <RcRxPop.h>
+
 #include <SoftRcPulseOut.h>
-#include <RcTxPop.h>
 
 #define RX_CHANNEL_PIN          2
 
@@ -56,7 +57,7 @@ void setup()
 {
 #if !defined(__AVR_ATtiny24__) && !defined(__AVR_ATtiny44__) && !defined(__AVR_ATtiny84__) && !defined(__AVR_ATtiny25__) && !defined(__AVR_ATtiny45__) && !defined(__AVR_ATtiny85__) && !defined(__AVR_ATtiny167__)
   Serial.begin(9600);
-  Serial.print("SoftRcPulseIn library V");Serial.print(SoftRcPulseIn::LibTextVersionRevision());Serial.print(" demo"); /* For arduino UNO which has an hardware UART, display the library version in the console */
+  Serial.print(F("SoftRcPulseIn library V"));Serial.print(SOFT_RC_PULSE_IN_VERSION);Serial.print(F("."));Serial.print(SOFT_RC_PULSE_IN_REVISION);Serial.print(" demo"); /* For arduino UNO which has an hardware UART, display the library version in the console */
 #endif
   RxChannelPulse.attach(RX_CHANNEL_PIN);
   ServoMotor[NORMAL].attach(SERVO1_PIN);   /* enumeration is used a index for the ServoMotor[] table */
