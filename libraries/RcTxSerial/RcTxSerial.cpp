@@ -30,7 +30,7 @@ const uint16_t PulseWidth[] PROGMEM = {PULSE_WIDTH_US(NIBBLE_0), PULSE_WIDTH_US(
                                        PULSE_WIDTH_US(NIBBLE_C), PULSE_WIDTH_US(NIBBLE_D), PULSE_WIDTH_US(NIBBLE_E), PULSE_WIDTH_US(NIBBLE_F),
                                        PULSE_WIDTH_US(NIBBLE_I)};
 
-static RcTxPop *_RcTxPop = NULL; /* All the PpmTxSerial have the same TinyPpmGen */
+static Rcul   *_Rcul = NULL; /* All the PpmTxSerial have the same TinyPpmGen */
 RcTxSerial    *RcTxSerial::first = NULL;
 
 /*************************************************************************
@@ -38,7 +38,7 @@ RcTxSerial    *RcTxSerial::first = NULL;
 *************************************************************************/
 
 /* Constructor */
-RcTxSerial::RcTxSerial(RcTxPop *RcTxPop, uint8_t TxFifoSize, uint8_t Ch /* = 255 */)
+RcTxSerial::RcTxSerial(Rcul *Rcul, uint8_t TxFifoSize, uint8_t Ch /* = 255 */)
 {
 #ifdef PPM_TX_SERIAL_USES_POWER_OF_2_AUTO_MALLOC
   if(TxFifoSize > 128) TxFifoSize = 128; /* Must fit in a 8 bits  */
@@ -53,7 +53,7 @@ RcTxSerial::RcTxSerial(RcTxPop *RcTxPop, uint8_t TxFifoSize, uint8_t Ch /* = 255
   _TxFifo = (char *)malloc(_TxFifoSize);
   if(_TxFifo != NULL)
   {
-    _RcTxPop = RcTxPop;
+    _Rcul = Rcul;
     _Ch     = Ch;
     _TxCharInProgress = 0;
     _TxFifoTail = 0;
@@ -109,9 +109,8 @@ uint8_t RcTxSerial::process()
   uint16_t PulseWidth_us;
   RcTxSerial *t;
 
-  if(_RcTxPop->RcTxPopIsSynchro())
+  if(_Rcul->RculIsSynchro())
   {
-//Serial.println(millis());
     for ( t = first; t != 0; t = t->next )
     {
       if(t->_TxCharInProgress)
@@ -131,7 +130,7 @@ uint8_t RcTxSerial::process()
 	  PulseWidth_us = GET_PULSE_WIDTH_US(NIBBLE_I); /* Noting to transmit */
 	}
       }
-      _RcTxPop->RcTxPopSetWidth_us(PulseWidth_us, t->_Ch); /* /!\ Ch as last argument /!\ */
+      _Rcul->RculSetWidth_us(PulseWidth_us, t->_Ch); /* /!\ Ch as last argument /!\ */
     }
     Ret = 1;
   }

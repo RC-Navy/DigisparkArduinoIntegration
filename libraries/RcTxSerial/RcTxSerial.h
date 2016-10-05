@@ -14,7 +14,7 @@
 */
 
 #include "Arduino.h"
-#include <RcTxPop.h>
+#include <Rcul.h>
 
 #include <inttypes.h>
 #include <Stream.h>
@@ -43,7 +43,7 @@ class RcTxSerial : public Stream
     static   RcTxSerial *first;
     uint8_t  TxFifoRead(char *TxChar);
   public:
-    RcTxSerial(RcTxPop *RcTxPop, uint8_t TxFifoSize, uint8_t Ch = 255);
+    RcTxSerial(Rcul *Rcul, uint8_t TxFifoSize, uint8_t Ch = 255);
     int peek();
     virtual size_t write(uint8_t byte);
     virtual int read();
