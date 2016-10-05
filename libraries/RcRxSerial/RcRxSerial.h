@@ -14,12 +14,12 @@
 */
 
 #include "Arduino.h"
-#include <RcRxPop.h>
+#include <Rcul.h>
 
 class RcRxSerial
 {
   private:
-    RcRxPop   *_RcRxPop;
+    Rcul    *_Rcul;
     uint8_t  _Ch;
     char     _Char;
     uint8_t  _MsgLen;
@@ -29,11 +29,11 @@ class RcRxSerial
     boolean  _NibbleAvailable;
     uint8_t  somethingAvailable(void);
   public:
-    RcRxSerial(RcRxPop *RcRxPop, uint8_t Ch = 255);
+    RcRxSerial(Rcul *Rcul, uint8_t Ch = 255);
     uint8_t  available();
     uint8_t  msgAvailable(char *RxBuf, uint8_t RxBufMaxLen);
     uint8_t  read();
-    void     reassignRcRxPopSrc(RcRxPop *RcRxPop, uint8_t Ch = 255); /* Marginal use (do not use it, if you do not know what is it for) */
+    void     reassignRculSrc(Rcul *Rcul, uint8_t Ch = 255); /* Marginal use (do not use it, if you do not know what is it for) */
     uint16_t lastWidth_us();     /* Only for calibration purpose */
     uint8_t  nibbleAvailable();  /* Only for calibration purpose */
 };

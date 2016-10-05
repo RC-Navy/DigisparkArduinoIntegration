@@ -16,7 +16,7 @@ read	KEYWORD2
 msgAvailable	KEYWORD2
 lastWidth_us	KEYWORD2
 nibbleAvailable	KEYWORD2
-reassignRcRxPopSrc	KEYWORD2
+reassignRculSrc	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)

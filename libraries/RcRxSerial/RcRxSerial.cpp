@@ -75,15 +75,15 @@ static int8_t PulseWithToNibbleIdx(uint16_t PulseWidth);
                               GLOBAL VARIABLES
 *************************************************************************/
 /* Constructor */
-RcRxSerial::RcRxSerial(RcRxPop *RcRxPop, uint8_t Ch /*= 255*/)
+RcRxSerial::RcRxSerial(Rcul *Rcul, uint8_t Ch /*= 255*/)
 {
-	reassignRcRxPopSrc(RcRxPop, Ch);
+	reassignRculSrc(Rcul, Ch);
 }
 
-void RcRxSerial::reassignRcRxPopSrc(RcRxPop *RcRxPop, uint8_t Ch /*= 255*/)
+void RcRxSerial::reassignRculSrc(Rcul *Rcul, uint8_t Ch /*= 255*/)
 {
 	_Ch = Ch;
-	_RcRxPop = RcRxPop;
+	_Rcul = Rcul;
 	_available = 0;
 	_Nibble = 0;
 	_NibbleAvailable = 0;
@@ -98,9 +98,9 @@ uint8_t RcRxSerial::somethingAvailable(void)
   uint8_t Ret = 0;
   uint8_t NibbleIdx;
 
-  if(_RcRxPop->RcRxPopIsSynchro())
+  if(_Rcul->RculIsSynchro())
   {
-     _LastWidth_us = _RcRxPop->RcRxPopGetWidth_us(_Ch);
+     _LastWidth_us = _Rcul->RculGetWidth_us(_Ch);
      _NibbleAvailable = 1;
      NibbleIdx = PulseWithToNibbleIdx(_LastWidth_us);
      if(NibbleIdx >= 0)

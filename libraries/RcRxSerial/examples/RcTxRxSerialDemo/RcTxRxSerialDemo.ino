@@ -1,11 +1,11 @@
+#include <Rcul.h>
+
 #include <TinyPpmGen.h>
 #include <RcTxSerial.h>
-#include <RcTxPop.h>
 
 #include <TinyPinChange.h>
 #include <TinyPpmReader.h>
 #include <RcRxSerial.h>
-#include <RcRxPop.h>
 
 // by RC Navy (http://p.loussouarn.free.fr/arduino/arduino.html)
 // This sketch can work with an Arduino UNO (can be adapted for other arduino).
@@ -32,7 +32,7 @@ TinyPpmReader et RcRxSerial sont la partie réception et extraient les canaux 1 
                             .----------------^-----------------.               .----------------^-----------------.
                                                                                          <TinyPinChange.h>
                                        <TinyPpmGen.h>                                    <TinyPpmReader.h>
-                                         <RcTxPop.h>                                       <RcRxPop.h>
+                                          <Rcul.h>                                          <Rcul.h>
                                       .---------------.                                 .---------------.
                                       |               |      Pin6 connected to Pin2     |               |
   Values of Channels 1 to 4 --------->|  TinyPpmGen   |----> PPM Frame (5 channels) --->| TinyPpmReader |---------> Values of Channels 1 to 4
