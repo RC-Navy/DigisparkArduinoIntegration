@@ -50,45 +50,44 @@ void SBusRxClass::process(void)
       RxChar = RxSerial->read();
       switch(RxState)
       {
-	case SBUS_WAIT_FOR_0x00:
-	if(RxChar == 0x00)
-	{
-	  if(RxIdx != (SBUS_RX_DATA_NB - 1)) // 22
-	  {
-	    RxState = SBUS_WAIT_FOR_0x0F;
-	  }
-	  else
-	  {
-	    /* Data received with good synchro */
-	    updateChannels();
-	    Synchro  = 0xFF;
-	    Finished = 1;
-	  }
-	  RxIdx = -1;
-	}
-	break;
+        case SBUS_WAIT_FOR_0x00:
+        if(RxChar == 0x00)
+        {
+          if(RxIdx != (SBUS_RX_DATA_NB - 1)) // 22
+          {
+            RxState = SBUS_WAIT_FOR_0x0F;
+          }
+          else
+          {
+            /* Data received with good synchro */
+            updateChannels();
+            Synchro  = 0xFF;
+            Finished = 1;
+          }
+          RxIdx = -1;
+        }
+        break;
 
-	case SBUS_WAIT_FOR_0x0F:
-	if(RxChar == 0x0F)
-	{
-	  RxState = SBUS_WAIT_FOR_END_OF_DATA;
-	}
-	else
-	{
-	  RxState = SBUS_WAIT_FOR_0x00;
-	}
-	break;
+        case SBUS_WAIT_FOR_0x0F:
+        if(RxChar == 0x0F)
+        {
+          RxState = SBUS_WAIT_FOR_END_OF_DATA;
+        }
+        else
+        {
+          RxState = SBUS_WAIT_FOR_0x00;
+        }
+        break;
 
-	case SBUS_WAIT_FOR_END_OF_DATA:
-	RxIdx++;
-	Data[RxIdx] = RxChar;
-	if(RxIdx >= (SBUS_RX_DATA_NB - 1)) // 22
-	{
-	  /* Check next byte is 0x00 */
-	  RxState = SBUS_WAIT_FOR_0x00;	
-	}
-	break;
-
+        case SBUS_WAIT_FOR_END_OF_DATA:
+        RxIdx++;
+        Data[RxIdx] = RxChar;
+        if(RxIdx >= (SBUS_RX_DATA_NB - 1)) // 22
+        {
+          /* Check next byte is 0x00 */
+          RxState = SBUS_WAIT_FOR_0x00;	
+        }
+        break;
       }
       if(Finished) break;
     }
