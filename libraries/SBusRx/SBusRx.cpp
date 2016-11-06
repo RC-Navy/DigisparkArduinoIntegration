@@ -1,6 +1,6 @@
 #include <SBusRx.h>
 
-enum {SBUS_WAIT_FOR_0x00 = 0, SBUS_WAIT_FOR_0x0F, SBUS_WAIT_FOR_END_OF_DATA};
+enum {SBUS_WAIT_FOR_0x0F = 0, SBUS_WAIT_FOR_END_OF_DATA, SBUS_WAIT_FOR_0x00};
 
 SBusRxClass SBusRx = SBusRxClass();
 
@@ -23,9 +23,10 @@ typedef struct {
 SBusRxClass::SBusRxClass()
 {
   RxSerial = NULL;
-  RxState  = SBUS_WAIT_FOR_0x00;
-  RxIdx    = -1;
+  RxState  = SBUS_WAIT_FOR_0x0F;
+  RxIdx    = 0;
   Synchro  = 0x00;
+  StartMs  = millis8();
 }
 
 void SBusRxClass::serialAttach(Stream *RxStream)
@@ -41,52 +42,44 @@ void SBusRxClass::process(void)
   {
     if(millis8() - StartMs > MAX_FRAME_TIME_MS)
     {
-      StartMs = millis8();
-      RxState = SBUS_WAIT_FOR_0x00;
+      RxState = SBUS_WAIT_FOR_0x0F;
     }
     while(RxSerial->available() > 0)
     {
-      StartMs = millis8();
       RxChar = RxSerial->read();
       switch(RxState)
       {
+        case SBUS_WAIT_FOR_0x0F:
+        if(RxChar == 0x0F)
+        {
+          StartMs = millis8(); /* Start of frame */
+          RxIdx = 0;
+          RxState = SBUS_WAIT_FOR_END_OF_DATA;
+        }
+        break;
+
+        case SBUS_WAIT_FOR_END_OF_DATA:
+        Data[RxIdx] = RxChar;
+        RxIdx++;
+        if(RxIdx >= SBUS_RX_DATA_NB) // 23
+        {
+          /* Check next byte is 0x00 */
+          RxState = SBUS_WAIT_FOR_0x00;	
+        }
+        break;
+
         case SBUS_WAIT_FOR_0x00:
         if(RxChar == 0x00)
         {
-          if(RxIdx != (SBUS_RX_DATA_NB - 1)) // 22
-          {
-            RxState = SBUS_WAIT_FOR_0x0F;
-          }
-          else
+          if(RxIdx == SBUS_RX_DATA_NB) // 23
           {
             /* Data received with good synchro */
             updateChannels();
             Synchro  = 0xFF;
             Finished = 1;
           }
-          RxIdx = -1;
         }
-        break;
-
-        case SBUS_WAIT_FOR_0x0F:
-        if(RxChar == 0x0F)
-        {
-          RxState = SBUS_WAIT_FOR_END_OF_DATA;
-        }
-        else
-        {
-          RxState = SBUS_WAIT_FOR_0x00;
-        }
-        break;
-
-        case SBUS_WAIT_FOR_END_OF_DATA:
-        RxIdx++;
-        Data[RxIdx] = RxChar;
-        if(RxIdx >= (SBUS_RX_DATA_NB - 1)) // 22
-        {
-          /* Check next byte is 0x00 */
-          RxState = SBUS_WAIT_FOR_0x00;	
-        }
+        RxState = SBUS_WAIT_FOR_0x0F;
         break;
       }
       if(Finished) break;
@@ -96,12 +89,24 @@ void SBusRxClass::process(void)
 
 void SBusRxClass::updateChannels(void)
 {
-  uint8_t  GlobBitIdx;
+  uint8_t  DataIdx = 0, DataBitIdx = 7, ChIdx = 0, ChBitIdx = 10;
   
-  for(GlobBitIdx = 0; GlobBitIdx < (SBUS_RX_CH_NB * 11); GlobBitIdx++)
+  for(uint8_t GlobBitIdx = 0; GlobBitIdx < (SBUS_RX_CH_NB * 11); GlobBitIdx++)
   {
-     bitWrite(Channel[GlobBitIdx / 11], GlobBitIdx % 11, bitRead(Data[GlobBitIdx / 8], GlobBitIdx % 8));
+    bitWrite(Channel[ChIdx], ChBitIdx, bitRead(Data[DataIdx], DataBitIdx));
+    DataBitIdx--; ChBitIdx--;
+    if(DataBitIdx == 255)
+    {
+        DataBitIdx = 7;
+        DataIdx++;
+    }
+    if(ChBitIdx == 255)
+    {
+        ChBitIdx = 10;
+        ChIdx++;
+    }
   }
+
 }
 
 uint16_t SBusRxClass::rawData(uint8_t Ch)
@@ -165,7 +170,7 @@ uint8_t SBusRxClass::flags(uint8_t FlagId)
     Ret = Flags->FailSafe;
     break;
   }
-  
+  return(Ret);
 }
 
 /* Rcul support */

@@ -18,7 +18,7 @@ class SBusRxClass : public Rcul
     Stream               *RxSerial;
     uint8_t               StartMs;
     uint8_t               RxState;
-    int8_t                RxIdx;
+    uint8_t               RxIdx;
     int8_t                Data[SBUS_RX_DATA_NB]; /* +1 for flags */
     uint16_t              Channel[SBUS_RX_CH_NB];
     uint8_t               Synchro;

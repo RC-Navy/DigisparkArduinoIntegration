@@ -30,7 +30,7 @@ API/methods:
 -----------
 * **SbusRx.serialAttach(Stream *RxStream)**
 With:
-	* **_RxStream_**: pointer on a serial stream initialized at 1OO OOO bds, SERIAL_8E2 (eg: &Serial, &Serial1)
+	* **_RxStream_**: pointer on a serial stream initialized at 100 000 bds, SERIAL_8E2 (eg: &Serial, &Serial1)
  
 * **SBusRx.process()**
 	* This method shall be called in the main loop to process incoming data
