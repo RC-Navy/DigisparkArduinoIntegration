@@ -1,0 +1,23 @@
+#######################################
+# Syntax Coloring Map SBusRx
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+SBusTx	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+serialAttach	KEYWORD2
+sendChannels	KEYWORD2
+isSynchro	KEYWORD2
+rawData	KEYWORD2
+width_us	KEYWORD2
+flags	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
