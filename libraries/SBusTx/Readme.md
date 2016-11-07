@@ -9,6 +9,7 @@ SBUS protocol is mainly used with Futaba and FrSky receivers.
 Some examples of use cases:
 -------------------------
 * **Simulation of a SBUS RC receiver**
+* **SBUS servo tester (see **SBusServoTester** example)**
 * **Test of SBUS receiver library such as SBusRx library**
 * **Digital data tranmission over SBUS**
 
@@ -29,9 +30,10 @@ Develop your project on an arduino MEGA, Leonardo and then shrink it by loading 
 
 API/methods:
 -----------
-* **SbusTx.serialAttach(Stream *TxStream)**
+* **SbusTx.serialAttach(Stream *TxStream, uint8_t FrameRateMs = SBUS_TX_NORMAL_TRAME_RATE_MS)**
 With:
 	* **_TxStream_**: pointer on a serial stream initialized at 100 000 bds, SERIAL_8E2 (eg: &Serial, &Serial1)
+	* **_FrameRateMs_**: frame rate in ms (SBUS_TX_NORMAL_TRAME_RATE_MS: 14ms or SBUS_TX_HIGH_SPEED_TRAME_RATE_MS: 7ms)
 
 * **uint8_t SBusTx.isSynchro()**:
 	* SBUS synchronization indicator: indicates that the SBUS frame has just been sent. The channel raw data and/or the channel pulse widths and SBUS flags can be set. This is a "clear on read" function (no need to clear explicitely the indicator).
