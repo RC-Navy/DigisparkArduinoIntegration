@@ -3,7 +3,7 @@ SBusTx library
 
 **SBusTx** is a SBUS generator library used to send the 16 proportionnal channels and the 4 flags transported by the SBUS protocol.
 SBUS protocol is mainly used with Futaba and FrSky receivers.
-**SBusTx** can simulates the ouput SBUS signal of a SBUS receiver.
+**SBusTx** can simulate the ouput SBUS signal of a SBUS receiver.
 
 
 Some examples of use cases:
@@ -55,6 +55,10 @@ With:
 
 * **SBusTx.sendChannels()**
 	* This method sends the 16 channels and the SBUS flags.
+
+SBusTxRxLoopback example usage:
+------------------------------
+![SBusTx screenshot](screenshot.png "SBusTx and SBus Rx")
 
 Contact
 -------
