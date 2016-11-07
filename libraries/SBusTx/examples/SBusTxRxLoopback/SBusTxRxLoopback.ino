@@ -51,7 +51,7 @@ void setup()
 {
   while(!Serial);
   Serial.begin(115200);
-  Serial1.begin(115200);
+  Serial1.begin(100000, SERIAL_8E2);
 
   SBusTx.serialAttach(&Serial1);
   SBusRx.serialAttach(&Serial1);
@@ -66,7 +66,6 @@ void setup()
   Serial.println(F("F=Value (Set or clear the FrameLost flag: value=0 or 1)"));
   Serial.println(F("S=Value (Set or clear the FailSafe  flag: value=0 or 1)"));
   Serial.println(F("Cxx? Dxx? F? and S? give the current values of the last received SBus frame\n"));
-//  Serial.print();
 }
 
 void loop()
@@ -171,7 +170,6 @@ static void InterpreteTmAndExecute(void)
         
         case ORDER:
         Value = atoi(&ARG(4));
-        Serial.print("Value=");Serial.println(Value);
         if(Ch <= SBUS_TX_CH_NB) SBusTx.width_us(Ch, Value);
         else                    SBusTx.flags((Ch - 17) + SBUS_TX_CH17, (uint8_t)Value);
         ACTION(3) = 0;
