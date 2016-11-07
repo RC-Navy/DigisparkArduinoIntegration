@@ -12,16 +12,16 @@ English:
 This sketch is the SBUS version of the wellknown "Knob" example sketch provided with the "Servo" library.
 The aim is to drive a SBUS servo with a potentiometer.
 The SBUS signal is available on the Tx pin of the Serial UART (usually the pin#1 on most of the arduinos).
-The SBUS servo shall be configured to use the channel defined with the SBUS_SERVO_CH macro.
-(or the macro SBUS_SERVO_CH shall be modified to match with the channel configured in the SBUS servo)
+There is no need to change the SBUS servo channel since all the 16 SBUS channels will be set with value defined
+by the potentiometer position.
 
 Francais:
 ========
 Ce sketch est la version SBUS de l'exemple bien connu du sketch "Knob" fourni avec la bibliotheque "Servo".
 Le but est de piloter un servo SBUS avec un potentiometre.
 Le signal SBUS est disponible sur la broche Tx de l'UART Serial (habituellement la broche#1 sur la plupart des arduinos).
-Le servo SBUS doit etre configure pour utiliser la voie definie par la macro SBUS_SERVO_CH.
-(ou la macro SBUS_SERVO_CH doit etre modifiee pour correspondre a la voie configuree dans le servo SBUS)
+Il n'y a pas besoin de changer la voie SBUS du servo puisque les 16 voies du SBUS vont etre chargees par la valeur definie
+par la position du potentiometre.
 
 Wiring/Cablage:
 ==============                                                  _______
@@ -48,9 +48,6 @@ Wiring/Cablage:
 */
 #include <SBusTx.h>
 
-
-#define SBUS_SERVO_CH    5 /* The SBUS servo shall be configured for this channel, or adjust here SBUS_SERVO_CH for this */
-
 int PotPin = A0; /* analog pin used to connect the potentiometer */
 int Val;         /* variable to read the value from the analog pin */
 
@@ -66,7 +63,10 @@ void loop()
   {
     Val = analogRead(PotPin);            /* Reads the value of the potentiometer (value between 0 and 1023) */
     Val = map(Val, 0, 1023, 1000, 2000); /* Scale it to use it with the servo (value between 1000 and 2000) */
-    SBusTx.width_us(SBUS_SERVO_CH, Val); /* Set the SBUS channel */
+    for(uint8_t Ch = 1; Ch <= SBUS_TX_CH_NB; Ch++)
+    {
+      SBusTx.width_us(Ch, Val); /* Set the value to all the 16 SBUS channels */
+    }
     SBusTx.sendChannels();               /* Send the SBUS frame  */
   }
 }
