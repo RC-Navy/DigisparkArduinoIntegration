@@ -1,6 +1,8 @@
 #ifndef RCUL_H
 #define RCUL_H
 
+#include <inttypes.h>
+
 class Rcul
 {
   public:
@@ -10,3 +12,4 @@ class Rcul
 };
 
 #endif
+
