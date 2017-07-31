@@ -3,8 +3,6 @@ DFPlayer-Mini-mp3
 
 Install instructions:
 
-toto
-
 * Download file
 * decompress
 * copy inside folder to your Arduino library folder

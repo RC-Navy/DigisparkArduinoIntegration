@@ -1,11 +1,11 @@
+#include <Rcul.h>
+
 #include <TinyPpmGen.h>
 #include <RcTxSerial.h>
-#include <RcTxPop.h>
 
 #include <TinyPinChange.h>
 #include <TinyPpmReader.h>
 #include <RcRxSerial.h>
-#include <RcRxPop.h>
 
 // by RC Navy (http://p.loussouarn.free.fr/arduino/arduino.html)
 // This sketch can work with an Arduino UNO (can be adapted for other arduino).
@@ -32,7 +32,7 @@ TinyPpmReader et RcRxSerial sont la partie réception et extraient les canaux 1 
                             .----------------^-----------------.               .----------------^-----------------.
                                                                                          <TinyPinChange.h>
                                        <TinyPpmGen.h>                                    <TinyPpmReader.h>
-                                         <RcTxPop.h>                                       <RcRxPop.h>
+                                          <Rcul.h>                                          <Rcul.h>
                                       .---------------.                                 .---------------.
                                       |               |      Pin6 connected to Pin2     |               |
   Values of Channels 1 to 4 --------->|  TinyPpmGen   |----> PPM Frame (5 channels) --->| TinyPpmReader |---------> Values of Channels 1 to 4
@@ -79,9 +79,9 @@ The utilization of the MyRcRxSerial object (the RX Part below) remains exactly t
 
 #define DATA_RC_CHANNEL 5
 
-RcTxSerial MyRcTxSerial(&TinyPpmGen,    RC_TX_SERIAL_ASYNCH3, 16, DATA_RC_CHANNEL); /* Create a Tx serial port with a tx fifo of 16 bytes on the channel#5 of the TinyPpmGen  (/!\ Data rate = 200 bauds /!\) */
+RcTxSerial MyRcTxSerial(&TinyPpmGen, 16, DATA_RC_CHANNEL); /* Create a Tx serial port with a tx fifo of 16 bytes on the channel#5 of the TinyPpmGen  (/!\ Data rate = 200 bauds /!\) */
 
-RcRxSerial MyRcRxSerial(&TinyPpmReader, RC_RX_SERIAL_ASYNCH2,     DATA_RC_CHANNEL); /* Create a Rx serial port on the channel#5 of the TinyPpmReader */
+RcRxSerial MyRcRxSerial(&TinyPpmReader,  DATA_RC_CHANNEL); /* Create a Rx serial port on the channel#5 of the TinyPpmReader */
 
 
 #define PULSE_WIDTH_MIN_US    1000
@@ -119,7 +119,7 @@ void loop()
     if(Width_us > PULSE_WIDTH_MAX_US) Step_us = -STEP_US;
     if(Width_us < PULSE_WIDTH_MIN_US) Step_us = +STEP_US;
   }
-  if(millis() - StartMs >= 1000UL) /* /!\ 1000ms Clock used to not flood the serial link (Data rate # 200 Bauds) /!\ */
+  if(millis() - StartMs >= 250) /* /!\ 250ms Clock used to not flood the serial link (Data rate # 200 Bauds) /!\ */
   {
     StartMs = millis(); /* Restart chrono */
     /* RC Channel#5: send a message (milliseconds elapsed since the power-up) using PCM over PPM (TM: RC Navy) */

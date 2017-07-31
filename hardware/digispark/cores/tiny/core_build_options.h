@@ -30,7 +30,7 @@
   All the libs taking MS_TIMER_TICK_EVERY_X_CYCLES into account will continue to work.
   Change this at your own risks. If you don't know what it is about, set it to 64.
 =============================================================================*/
-#define MS_TIMER_TICK_EVERY_X_CYCLES 64 /* Shall be a within 1, 8, 64, 256 or 1024. (default = 64) If set to 1, HW PWM is around 64.5KHz@16.5MHz with Digispark */
+#define MS_TIMER_TICK_EVERY_X_CYCLES  64 /* Shall be a within 1, 8, 64, 256 or 1024. (default = 64) If set to 1, HW PWM is around 64.5KHz@16.5MHz with Digispark */
 
 /*=============================================================================
   Low power / smaller code options

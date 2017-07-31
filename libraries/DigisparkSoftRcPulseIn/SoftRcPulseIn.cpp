@@ -5,91 +5,59 @@
  http://p.loussouarn.free.fr
  V1.0: initial release
  V1.1: asynchronous timeout support added (up to 250ms)
- V1.2: (06/04/2015) RcTxPop and RcRxPop support added (allows to create a virtual serial port over a PPM channel)
- V1.3: (12/04/2016) boolean type replaced by uint8_t and version management replaced by constants
- V1.4: (04/10/2016) Update with Rcul in replacement of RcTxPop and RcRxPop
- V1.5: (31/06/2017) Support for Arduino ESP8266 added, support of inverted pulse addded
- 
+ V1.2: (06/04/2015) Rcul support added (allows to create a virtual serial port over a PPM channel)
  Francais: par RC Navy (2012-2015)
  ========
  <SoftRcPulseIn>: une librairie asynchrone pour lire les largeur d'impulsions des Radio-Commandes standards. Cette librairie est une version non bloquante de pulseIn().
  http://p.loussouarn.free.fr
  V1.0: release initiale
  V1.1: support de timeout asynchrone ajoutee (jusqu'a 250ms)
- V1.2: (06/04/2015) Support de RcTxPop et RcRxPop ajoute (permet de creer un port serie virtuel par dessus une voie PPM)
- V1.3: (12/04/2016) type boolean remplace par uint8_t et gestion de version remplace par des constantes
- V1.4: (04/10/2016) Mise a jour avec Rcul en remplacement de RcTxPop et RcRxPop
- V1.5: (31/06/2017) Ajout du support de l'Arduino ESP8266, ajout du support des impulsions inversees
+ V1.2: (06/04/2015) Support Rcul ajoute (permet de creer un port serie virtuel par dessus une voie PPM)
+ V1.3: (12/04/2016) boolean type replaced by uint8_t and version management replaced by constants
 */
 
 #include "SoftRcPulseIn.h"
 
 
-SoftRcPulseIn *SoftRcPulseIn::last = NULL;
-
-#ifdef ESP8266
-static uint16_t PinsImage = 0xFFFF;
-#endif
+SoftRcPulseIn *SoftRcPulseIn::first;
 
 SoftRcPulseIn::SoftRcPulseIn(void)
 {
 }
 
-#ifdef SOFT_RC_PULSE_IN_INV_SUPPORT
-SoftRcPulseIn::SoftRcPulseIn(uint8_t Inv)
-{
-  _Inv = Inv;
-}
-#endif
-
 uint8_t SoftRcPulseIn::attach(uint8_t Pin, uint16_t PulseMin_us/*=600*/, uint16_t PulseMax_us/*=2400*/)
 {
-  uint8_t Ret = 0;
+uint8_t Ret = 0;
 
-#ifdef ESP8266
-  if(Pin < 16)
-  {
-    _Pin     = Pin;
-    _Min_us  = PulseMin_us;
-    _Max_us  = PulseMax_us;
-    prev  = last;
-    last = this;
-    pinMode(_Pin, INPUT);
-    digitalWrite(_Pin, HIGH); /* Eanble Pull-up */
-    attachInterrupt(digitalPinToInterrupt(_Pin), SoftRcPulseIn::SoftRcPulseInInterrupt, CHANGE);
-    Ret = 1;
-  }
-#else
-  _VirtualPortIdx = TinyPinChange_RegisterIsr(Pin, SoftRcPulseIn::SoftRcPulseInInterrupt);
-  if(_VirtualPortIdx >= 0)
-  {
-    _Pin     = Pin;
-    _PinMask = TinyPinChange_PinToMsk(Pin);
-    _Min_us  = PulseMin_us;
-    _Max_us  = PulseMax_us;
-    prev  = last;
-    last = this;
-    pinMode(_Pin, INPUT);
-    digitalWrite(_Pin, HIGH); /* Eanble Pull-up */
-    TinyPinChange_EnablePin(_Pin);
-    Ret = 1;
-  }
-#endif
-  return(Ret);
+	_VirtualPortIdx = TinyPinChange_RegisterIsr(Pin, SoftRcPulseIn::SoftRcPulseInInterrupt);
+	if(_VirtualPortIdx >= 0)
+	{
+	  _Pin=Pin;
+	  _PinMask = TinyPinChange_PinToMsk(Pin);
+	  _Min_us  = PulseMin_us;
+	  _Max_us  = PulseMax_us;
+	  next  = first;
+	  first = this;
+	  pinMode(_Pin,INPUT);
+	  digitalWrite(_Pin, HIGH);
+	  TinyPinChange_EnablePin(_Pin);
+	  Ret=1;
+	}
+	return(Ret);
 }
 
 uint8_t SoftRcPulseIn::available(void)
 {
-  uint8_t  Ret = 0;
-  uint16_t PulseWidth_us;
+uint8_t Ret=0;
+uint16_t PulseWidth_us;
 
   if(_Available)
   {
 	noInterrupts();
 	PulseWidth_us = _Width_us;
 	interrupts();
-	Ret = (PulseWidth_us >= _Min_us) && (PulseWidth_us <= _Max_us);
-	_Available = 0;
+	Ret=_Available && (PulseWidth_us >= _Min_us) && (PulseWidth_us <= _Max_us);
+	_Available=0;
   }
   return(Ret);
 }
@@ -111,12 +79,10 @@ uint8_t SoftRcPulseIn::timeout(uint8_t TimeoutMs, uint8_t *CurrentState)
 
 uint16_t SoftRcPulseIn::width_us(void)
 {
-  uint16_t PulseWidth_us;
-
+uint16_t PulseWidth_us;
   noInterrupts();
   PulseWidth_us = _Width_us;
   interrupts();
-  
   return(PulseWidth_us);  
 }
 
@@ -141,25 +107,13 @@ void     SoftRcPulseIn::RculSetWidth_us(uint16_t Width_us, uint8_t Ch /*= 255*/)
 
 void SoftRcPulseIn::SoftRcPulseInInterrupt(void)
 {
-  SoftRcPulseIn *RcPulseIn;
-  uint8_t        PinState;
+SoftRcPulseIn *RcPulseIn;
 
-  for(RcPulseIn = last; RcPulseIn != 0; RcPulseIn = RcPulseIn->prev)
+  for ( RcPulseIn = first; RcPulseIn != 0; RcPulseIn = RcPulseIn->next )
   {
-#ifdef ESP8266
-    PinState = digitalRead(RcPulseIn->_Pin);
-    if((PinsImage & (1 << RcPulseIn->_Pin)) ^ (PinState << RcPulseIn->_Pin))
+    if(TinyPinChange_GetPortEvent(RcPulseIn->_VirtualPortIdx)&RcPulseIn->_PinMask)
     {
-#else
-    if(TinyPinChange_Edge(RcPulseIn->_VirtualPortIdx, RcPulseIn->_Pin))
-    {
-      PinState = digitalRead(RcPulseIn->_Pin);
-#endif
-	  if(PinState
-#ifdef SOFT_RC_PULSE_IN_INV_SUPPORT
-                  ^ RcPulseIn->_Inv
-#endif        
-      )
+	  if(digitalRead(RcPulseIn->_Pin))
 	  {
 		  /* High level, rising edge: start chrono */
 		  RcPulseIn->_Start_us = micros();
@@ -173,9 +127,6 @@ void SoftRcPulseIn::SoftRcPulseInInterrupt(void)
 		  RcPulseIn->_LastTimeStampMs = (uint8_t)(millis() & 0x000000FF);
 #endif
 	  }
-#ifdef ESP8266
-      bitWrite(PinsImage, RcPulseIn->_Pin, PinState); /* Update real pin state in image */
-#endif
     }
   }
 }

@@ -1,4 +1,5 @@
 #include <Rcul.h>
+
 #include <TinyPpmGen.h>
 #include <RcTxSerial.h>
 
@@ -21,7 +22,7 @@ TinyPpmReader and RcRxSerial are the receiver part and extracts channels 1 to 4 
 
 FR:
 ==
-Ce sketch démontre comment envoyer un message texte via un canal d'un train PPM cté émetteur et comment le recevoir coté récepteur.
+Ce sketch démontre comment envoyer un message texte via un canal d'un train PPM cté émetteur et comment le recevoir cté récepteur.
 Ce sketch génère un train PPM transportant 5 canaux et utilise le 5e canal pour transporter le message texte.
 TinyPpmGen et RcTxserial sont utilisés pour générer le train PPM (PPM sum) sur la broche6 d'un arduino UNO.
 Sur l'arduino UNO, la broche6 est connectée à la broche2.
@@ -78,18 +79,14 @@ The utilization of the MyRcRxSerial object (the RX Part below) remains exactly t
 
 #define DATA_RC_CHANNEL 5
 
-#define RC_TX_SYNCH_ASYNCH    RC_TX_SERIAL_ASYNCH3
+RcTxSerial MyRcTxSerial(&TinyPpmGen, 16, DATA_RC_CHANNEL); /* Create a Tx serial port with a tx fifo of 16 bytes on the channel#5 of the TinyPpmGen  (/!\ Data rate = 200 bauds /!\) */
 
-RcTxSerial MyRcTxSerial(&TinyPpmGen,    RC_TX_SYNCH_ASYNCH, 16, DATA_RC_CHANNEL); /* Create a Tx serial port with a tx fifo of 16 bytes on the channel#5 of the TinyPpmGen  (/!\ Data rate = 200 bauds /!\) */
-
-RcRxSerial MyRcRxSerial(&TinyPpmReader, RC_RX_SERIAL_ASYNCH,   DATA_RC_CHANNEL); /* Create a Rx serial port on the channel#5 of the TinyPpmReader */
+RcRxSerial MyRcRxSerial(&TinyPpmReader,  DATA_RC_CHANNEL); /* Create a Rx serial port on the channel#5 of the TinyPpmReader */
 
 
 #define PULSE_WIDTH_MIN_US    1000
 #define PULSE_WIDTH_MAX_US    2000
 #define STEP_US               5
-
-#define PPM_PERIOD_US         20000
 
 uint16_t Width_us = PULSE_WIDTH_MAX_US;
 uint16_t Step_us  = STEP_US;
@@ -102,10 +99,9 @@ uint32_t StartMs = millis();
 
 void setup()
 {
-  TinyPpmGen.begin(TINY_PPM_GEN_POS_MOD, DATA_RC_CHANNEL, PPM_PERIOD_US); /* Generate 5 channels. Change TINY_PPM_GEN_POS_MOD to TINY_PPM_GEN_NEG_MOD for NEGative PPM modulation */
+  TinyPpmGen.begin(TINY_PPM_GEN_POS_MOD, DATA_RC_CHANNEL); /* Generate 5 channels. Change TINY_PPM_GEN_POS_MOD to TINY_PPM_GEN_NEG_MOD for NEGative PPM modulation */
   TinyPpmReader.attach(PPM_INPUT_PIN); /* Attach MyPpmReader to PPM_INPUT_PIN pin */
   Serial.begin(115200);
-  Serial.print(F("Tx Time for 6 characters: "));Serial.print(RC_TX_TIME_MS(PPM_PERIOD_US, RC_TX_SYNCH_ASYNCH, 6));Serial.println(F(" ms"));
 }
 
 void loop()
@@ -123,7 +119,7 @@ void loop()
     if(Width_us > PULSE_WIDTH_MAX_US) Step_us = -STEP_US;
     if(Width_us < PULSE_WIDTH_MIN_US) Step_us = +STEP_US;
   }
-  if(millis() - StartMs >= RC_TX_TIME_MS(PPM_PERIOD_US, RC_TX_SYNCH_ASYNCH, 6)) /* /!\ 250ms Clock used to not flood the serial link (Data rate # 200 Bauds) /!\ */
+  if(millis() - StartMs >= 250) /* /!\ 250ms Clock used to not flood the serial link (Data rate # 200 Bauds) /!\ */
   {
     StartMs = millis(); /* Restart chrono */
     /* RC Channel#5: send a message (milliseconds elapsed since the power-up) using PCM over PPM (TM: RC Navy) */
