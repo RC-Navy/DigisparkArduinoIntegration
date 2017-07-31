@@ -19,6 +19,7 @@ Supported Arduinos:
 * **ATtiny85 (Standalone or Digispark)**
 * **ATtiny167 (Digispark pro)**
 * **ATmega32U4 (Leonardo, Micro, Pro Micro)**
+* **ESP8266**
 
 Tip and Tricks:
 --------------
@@ -26,7 +27,7 @@ Develop your project on an arduino UNO or MEGA, and then shrink it by loading th
 
 API/methods:
 -----------
-* attach()
+* attach() or attach(false) for normal pulse, attach(true) for inverted pulse
 * available()
 * width_us()
 * timeout()
@@ -37,7 +38,7 @@ API/methods:
 
 Design considerations:
 ---------------------
-The **SoftRcPulseIn** library relies the **TinyPinChange** library. This one shall be included in the sketch as well.
+The **SoftRcPulseIn** library relies the **TinyPinChange** library, except for the ESP8266 where **TinyPinChange** is not needed. This one shall be included in the sketch as well.
 
 On the arduino MEGA (ATmega2560), as all the pins do not support "pin change interrupt", only the following pins are supported:
 
@@ -52,6 +53,8 @@ On the arduino Lenardo, Micro and Pro Micro (ATmega32U4), as all the pins do not
 * 14 -> 17 (pin 17 is not available on the headers/connectors)
 
 On other devices (ATmega328, ATtiny84, ATtiny85 and ATtiny167), all the pins are usable.
+
+On ESP8266, all the GPIO are usable, except GPIO16.
 
 Contact
 -------

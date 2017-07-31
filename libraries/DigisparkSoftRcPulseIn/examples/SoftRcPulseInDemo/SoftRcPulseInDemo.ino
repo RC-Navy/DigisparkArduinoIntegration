@@ -1,6 +1,8 @@
 #include <Rcul.h>
 #include <SoftRcPulseIn.h>
+#ifndef ESP8266
 #include <TinyPinChange.h>
+#endif
 
 #define BROCHE_VOIE1  2
 
