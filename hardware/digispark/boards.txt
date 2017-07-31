@@ -46,3 +46,27 @@ digispark-tiny1mhz.bootloader.extended_fuses=0xfe
 digispark-tiny1mhz.bootloader.path=micronucleus
 digispark-tiny1mhz.bootloader.file=micronucleus-1.06-upgrade.hex
 
+digispark-tiny16mhz5.name=Digispark 16.0mhz - NO USB (Tiny Core 5IO ISP PL)
+digispark-tiny16mhz5.upload.maximum_size=8192
+digispark-tiny16mhz5.build.mcu=attiny85
+digispark-tiny16mhz5.build.f_cpu=16000000L
+digispark-tiny16mhz5.build.core=tiny
+digispark-tiny16mhz5.upload.using=digispark
+digispark-tiny16mhz5.bootloader.low_fuses=0xf1
+digispark-tiny16mhz5.bootloader.high_fuses=0xdd
+digispark-tiny16mhz5.bootloader.extended_fuses=0xfe
+digispark-tiny16mhz5.bootloader.path=micronucleus
+digispark-tiny16mhz5.bootloader.file=micronucleus-1.06-upgrade.hex
+
+digispark-tiny16mhz6.name=Digispark 16.0mhz - NO USB (Tiny Core 6IO No RST PL)
+digispark-tiny16mhz6.upload.maximum_size=8192
+digispark-tiny16mhz6.build.mcu=attiny85
+digispark-tiny16mhz6.build.f_cpu=16000000L
+digispark-tiny16mhz6.build.core=tiny
+digispark-tiny16mhz6.upload.using=digispark
+digispark-tiny16mhz6.bootloader.low_fuses=0xf1
+digispark-tiny16mhz6.bootloader.high_fuses=0x5f
+digispark-tiny16mhz6.bootloader.extended_fuses=0xfe
+#digispark-tiny16mhz6.bootloader.path=micronucleusDisabled
+#digispark-tiny16mhz6.bootloader.file=micronucleus-1.06-upgrade.hexDisabled
+

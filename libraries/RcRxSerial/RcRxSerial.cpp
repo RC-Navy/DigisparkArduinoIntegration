@@ -16,25 +16,25 @@
 /*
   STEP
   <->
- 992                                                                 2080
-  |-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|
-    0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F   I
+ 996                                                                     2004
+  |-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|
+    0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F   R   I
     <--->
-    |   |                                                           |
-  1024 1088                                                        2048
+    |   |                                                               |
+  1024 1080                                                           1976
 INTER_NIBBLE
 */
-enum {NIBBLE_0=0, NIBBLE_1, NIBBLE_2, NIBBLE_3, NIBBLE_4, NIBBLE_5, NIBBLE_6, NIBBLE_7, NIBBLE_8, NIBBLE_9, NIBBLE_A, NIBBLE_B, NIBBLE_C, NIBBLE_D, NIBBLE_E, NIBBLE_F, NIBBLE_I, NIBBLE_NB};
+enum {NIBBLE_0=0, NIBBLE_1, NIBBLE_2, NIBBLE_3, NIBBLE_4, NIBBLE_5, NIBBLE_6, NIBBLE_7, NIBBLE_8, NIBBLE_9, NIBBLE_A, NIBBLE_B, NIBBLE_C, NIBBLE_D, NIBBLE_E, NIBBLE_F, NIBBLE_R, NIBBLE_I, NIBBLE_NB};
 
-#define STEP                      	  32 /* 32 */
+#define STEP                          28 /* 28 x 2 = 56 µs -> Width of a symbol */
 
-#define PULSE_MIN_VAL (1024 - 32) /* Not 1000:  992 allows 64us width for each nibble */
-#define PULSE_MAX_VAL (2048 + 32) /* Not 2000: 2080 allows 64us width for each nibble */
+#define PULSE_MIN_VAL (1000 - 4) /* Not 1000:  996 allows 56us width for each nibble */
+#define PULSE_MAX_VAL (2000 + 4) /* Not 2000: 2004 allows 56us width for each nibble */
 
-#define INTER_NIBBLE			  (2*STEP) /* 64 */
-#define PULSE_MIN(NibbleIdx)             (PULSE_MIN_VAL + ((NibbleIdx) * INTER_NIBBLE))
-#define PULSE_MAX(NibbleIdx)             (PULSE_MIN((NibbleIdx)) + INTER_NIBBLE)
-#define PULSE_MIN_MAX(NibbleIdx)         {PULSE_MIN(NibbleIdx), PULSE_MAX(NibbleIdx)}
+#define INTER_NIBBLE                  (2*STEP) /* 56 */
+#define PULSE_MIN(NibbleIdx)          (PULSE_MIN_VAL + ((NibbleIdx) * INTER_NIBBLE))
+#define PULSE_MAX(NibbleIdx)          (PULSE_MIN((NibbleIdx)) + INTER_NIBBLE)
+#define PULSE_MIN_MAX(NibbleIdx)      {PULSE_MIN(NibbleIdx), PULSE_MAX(NibbleIdx)}
 
 typedef struct {
   boolean Available;
@@ -64,6 +64,7 @@ const NibblePulseSt_t NibblePulse[NIBBLE_NB] PROGMEM = {
 							  PULSE_MIN_MAX(NIBBLE_D),
 							  PULSE_MIN_MAX(NIBBLE_E),
 							  PULSE_MIN_MAX(NIBBLE_F),
+							  PULSE_MIN_MAX(NIBBLE_R),
 							  PULSE_MIN_MAX(NIBBLE_I)
 							  };
 
@@ -75,8 +76,9 @@ static int8_t PulseWithToNibbleIdx(uint16_t PulseWidth);
                               GLOBAL VARIABLES
 *************************************************************************/
 /* Constructor */
-RcRxSerial::RcRxSerial(Rcul *Rcul, uint8_t Ch /*= 255*/)
+RcRxSerial::RcRxSerial(Rcul *Rcul, uint8_t Asynch, uint8_t Ch /*= 255*/)
 {
+	_Nibble.Asynch = Asynch + 1;
 	reassignRculSrc(Rcul, Ch);
 }
 
@@ -85,8 +87,9 @@ void RcRxSerial::reassignRculSrc(Rcul *Rcul, uint8_t Ch /*= 255*/)
 	_Ch = Ch;
 	_Rcul = Rcul;
 	_available = 0;
-	_Nibble = 0;
-	_NibbleAvailable = 0;
+	_Nibble.Phase = 0;
+	_Nibble.PrevIdx = NIBBLE_NB;
+	_Nibble.Available = 0;
 	_Char = 0;
 	_MsgLen = 0;
 }
@@ -96,39 +99,58 @@ void RcRxSerial::reassignRculSrc(Rcul *Rcul, uint8_t Ch /*= 255*/)
 uint8_t RcRxSerial::somethingAvailable(void)
 {
   uint8_t Ret = 0;
-  uint8_t NibbleIdx;
+  int8_t NibbleIdx; /* Shall be signed */
 
   if(_Rcul->RculIsSynchro())
   {
      _LastWidth_us = _Rcul->RculGetWidth_us(_Ch);
-     _NibbleAvailable = 1;
+     _Nibble.Available = 1;
      NibbleIdx = PulseWithToNibbleIdx(_LastWidth_us);
      if(NibbleIdx >= 0)
      {
-       if(NibbleIdx == NIBBLE_I)
+       if(_Nibble.Asynch > 1)
        {
-         Ret = RX_SERIAL_IDLE_NIBBLE_AVAILABLE;
-         _Nibble = 0; /* Idle -> Re-Synch */
-       }
-       else
-       {
-         if(!_Nibble)
+         if(NibbleIdx != _Nibble.PrevIdx)
          {
-            _Char = (NibbleIdx << 4);  /* MSN first */
+           _Nibble.PrevIdx = NibbleIdx;
+           _Nibble.SameCnt = 0;
+         }
+       }
+       else _Nibble.SameCnt = 0; /* SYNCH Mode */
+       _Nibble.SameCnt++;
+       if(_Nibble.SameCnt == _Nibble.Asynch)
+       {
+         /* OK, Nibble or Repeat or Idle valid */
+         if(NibbleIdx == NIBBLE_R)
+         {
+	   _Nibble.Itself = _Nibble.PrevValid; /* Previous nibble is repeated */
          }
          else
          {
-            _Char |= NibbleIdx;  /* LSN */
-            Ret = RX_SERIAL_CHAR_AVAILABLE;
-            _available = 1;
+	   _Nibble.Itself = NibbleIdx;
          }
-         _Nibble = !_Nibble;
+         _Nibble.PrevValid = _Nibble.Itself;
+         if(_Nibble.Itself == NIBBLE_I)
+         {
+           Ret = RX_SERIAL_IDLE_NIBBLE_AVAILABLE;
+           _Nibble.Phase = 0; /* Idle -> Re-Synch */
+         }
+         else
+         {
+           if(!_Nibble.Phase)
+           {
+             _Char = (_Nibble.Itself << 4);  /* MSN first */
+           }
+           else
+           {
+             _Char |= _Nibble.Itself;  /* LSN */
+             Ret = RX_SERIAL_CHAR_AVAILABLE;
+             _available = 1;
+           }
+           _Nibble.Phase = !_Nibble.Phase;
+         }
        }
-     }
-     else
-     {
-       _Nibble = 0; /* Unknown -> Re-Synch */
-     }
+    }
   }
   return(Ret);
 }
@@ -160,7 +182,8 @@ uint8_t RcRxSerial::msgAvailable(char *RxBuf, uint8_t RxBufMaxLen)
     }
     else
     {
-      Ret = 1; /* Max Message length received */
+      Ret = _MsgLen; /* Max Message length received */
+      _MsgLen = 0;
     }
     break;
   }
@@ -175,12 +198,12 @@ uint8_t RcRxSerial::read()
 
 uint8_t RcRxSerial::nibbleAvailable() /* Only for calibration purpose */
 {
-  return(_NibbleAvailable);
+  return(_Nibble.Available);
 }
 
 uint16_t RcRxSerial::lastWidth_us() /* Only for calibration purpose */
 {
-  _NibbleAvailable = 0;
+  _Nibble.Available = 0;
   return(_LastWidth_us);
 }
 
@@ -189,7 +212,8 @@ uint16_t RcRxSerial::lastWidth_us() /* Only for calibration purpose */
 //========================================================================================================================
 static int8_t PulseWithToNibbleIdx(uint16_t PulseWidth)
 {
-int8_t Ret = -1, Idx;
+  int8_t  Ret = -1;
+  uint8_t Idx;
 
   for(Idx = 0; Idx < TABLE_ITEM_NBR(NibblePulse); Idx++)
   {
