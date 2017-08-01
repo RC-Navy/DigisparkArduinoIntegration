@@ -31,14 +31,14 @@ SoftRcPulseIn *SoftRcPulseIn::last = NULL;
 static uint16_t PinsImage = 0xFFFF;
 #endif
 
-SoftRcPulseIn::SoftRcPulseIn(void)
-{
-}
-
 #ifdef SOFT_RC_PULSE_IN_INV_SUPPORT
-SoftRcPulseIn::SoftRcPulseIn(uint8_t Inv)
+SoftRcPulseIn::SoftRcPulseIn(uint8_t Inv /*= 0*/)
 {
   _Inv = Inv;
+}
+#else
+SoftRcPulseIn::SoftRcPulseIn(void)
+{
 }
 #endif
 

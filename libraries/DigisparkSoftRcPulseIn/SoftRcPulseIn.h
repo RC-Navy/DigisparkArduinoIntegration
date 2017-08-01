@@ -42,9 +42,10 @@
 class SoftRcPulseIn : public Rcul
 {
   public:
-    SoftRcPulseIn();
 #ifdef SOFT_RC_PULSE_IN_INV_SUPPORT
-    SoftRcPulseIn(uint8_t Inv);
+    SoftRcPulseIn(uint8_t Inv = 0);
+#else
+    SoftRcPulseIn();
 #endif
     static void  SoftRcPulseInInterrupt(void);
     uint8_t      attach(uint8_t Pin, uint16_t PulseMin_us = 600, uint16_t PulseMax_us = 2400);
