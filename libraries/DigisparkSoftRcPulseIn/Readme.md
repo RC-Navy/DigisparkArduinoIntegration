@@ -25,9 +25,18 @@ Tip and Tricks:
 --------------
 Develop your project on an arduino UNO or MEGA, and then shrink it by loading the sketch in an ATtiny or Digispark (pro).
 
+
+Object constructor:
+------------------
+3 ways to declare a SoftRcPulseIn object:
+
+* 1) SoftRcPulseIn MyRcSignal; //Positive RC pulse expected (default behaviour)
+* 2) SoftRcPulseIn MyRcSignal(false); //Positive RC pulse expected (equivalent as the above)
+* 3) SoftRcPulseIn MyRcSignal(true); //Negative RC pulse expected
+
 API/methods:
 -----------
-* attach() or attach(false) for normal pulse, attach(true) for inverted pulse
+* attach()
 * available()
 * width_us()
 * timeout()
@@ -38,7 +47,7 @@ API/methods:
 
 Design considerations:
 ---------------------
-The **SoftRcPulseIn** library relies the **TinyPinChange** library, except for the ESP8266 where **TinyPinChange** is not needed. This one shall be included in the sketch as well.
+The **SoftRcPulseIn** library relies the **TinyPinChange** library. This one shall be included in the sketch as well, except for the ESP8266 where **TinyPinChange** is not needed.
 
 On the arduino MEGA (ATmega2560), as all the pins do not support "pin change interrupt", only the following pins are supported:
 
