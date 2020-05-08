@@ -10,7 +10,7 @@ http://p.loussouarn.free.fr
 #include <Rcul.h>
 #include <SoftRcPulseIn.h>
 #include <SoftRcPulseOut.h>
-#include <TinyPinChange.h> /* Needed for <SoftRcPulseIn> library */
+#include <TinyPinChange.h>
 
 #define RX_CHANNEL_PIN          2
 
