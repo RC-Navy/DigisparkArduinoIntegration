@@ -1,0 +1,24 @@
+#######################################
+# Syntax Coloring Map TinyCppmReader
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+TinyCppmReader	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+attach	KEYWORD2
+detach	KEYWORD2
+detectedChannelNb	KEYWORD2
+width_us	KEYWORD2
+ppmPeriod_us	KEYWORD2
+isSynchro	KEYWORD2
+suspend	KEYWORD2
+resume	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
