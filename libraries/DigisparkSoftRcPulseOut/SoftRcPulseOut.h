@@ -34,7 +34,7 @@
 #include <inttypes.h>
 
 #define SOFT_RC_PULSE_OUT_VERSION          2
-#define SOFT_RC_PULSE_OUT_REVISION         1
+#define SOFT_RC_PULSE_OUT_REVISION         2
 
 #define SOFT_RC_PULSE_OUT_INSTANCE_MAX_NB  15 /* Counter on 4 bits */
 
@@ -69,15 +69,15 @@ class SoftRcPulseOut : public Rcul
     void                  setMinimumPulse(uint16_t);  // pulse length for 0 degrees in microseconds, 540uS default
     void                  setMaximumPulse(uint16_t);  // pulse length for 180 degrees in microseconds, 2400uS default
     /* Rcul support */
-    virtual uint8_t       RculIsSynchro();
-    virtual void          RculSetWidth_us(uint16_t Width_us, uint8_t Ch = 255);
+    virtual uint8_t       RculIsSynchro(uint8_t ClientIdx = RCUL_DEFAULT_CLIENT_IDX);
+    virtual void          RculSetWidth_us(uint16_t Width_us, uint8_t Ch = RCUL_NO_CH);
     virtual uint16_t      RculGetWidth_us(uint8_t Ch);
     static int8_t         createInstance(void);   //Allocate dynamically an instance of a SoftRcPulseOut object. Returns the object id.
     static uint8_t        createdInstanceNb(void);//Return the created instance(s) SoftRcPulseOut object.
     static SoftRcPulseOut *softRcPulseOutById(uint8_t ObjIdx);
     static int8_t         getIdByPin(uint8_t Pin);
     static uint8_t        destroyInstance(uint8_t ObjIdx); //Deallocate dynamically an instance of a SoftRcPulseOut object. Returns the object id.
-    static uint8_t        refresh(bool force = false);// must be called at least every 50ms or so to keep servo alive
+    static uint8_t        refresh(uint8_t force = 0);// must be called at least every 50ms or so to keep servo alive
                                                // you can call more often, it won't happen more than once every 20ms
 };
 

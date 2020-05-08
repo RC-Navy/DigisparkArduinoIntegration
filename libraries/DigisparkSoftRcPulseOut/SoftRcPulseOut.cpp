@@ -93,7 +93,7 @@ uint8_t SoftRcPulseOut::createdInstanceNb(void)
 
 uint8_t SoftRcPulseOut::destroyInstance(uint8_t ObjIdx)
 {
-  int8_t Idx, Ret = 0;
+  int8_t Ret = 0;
   SoftRcPulseOut *This;
 
   if((ObjIdx >= (ObjectCreated.Total - ObjectCreated.Dynamically)) && (ObjIdx < ObjectCreated.Total))
@@ -103,16 +103,16 @@ uint8_t SoftRcPulseOut::destroyInstance(uint8_t ObjIdx)
     {
       for ( SoftRcPulseOut **p = &first; *p != 0; p = &((*p)->next) )
       {
-	if ( *p == This )
-	{
-	  *p = This->next;
-	  This->next = 0;
-	  delete(This);
-	  ObjectCreated.Dynamically--;
-	  ObjectCreated.Total--;
-	  Ret = 1;
-	  break;
-	}
+        if ( *p == This )
+        {
+          *p = This->next;
+          This->next = 0;
+          delete(This);
+          ObjectCreated.Dynamically--;
+          ObjectCreated.Total--;
+          Ret = 1;
+          break;
+        }
       }
     }
   }
@@ -159,59 +159,59 @@ int8_t SoftRcPulseOut::getIdByPin(uint8_t Pin)
 
 uint8_t SoftRcPulseOut::attach(uint8_t pinArg, uint8_t Inverted /*= 0*/)
 {
-    pin    = pinArg;
-    angle  = NO_ANGLE;
-    min16  = 34;
-    max16  = 150;
-    Bool.Inverted = Inverted;
-    digitalWrite(pin, LOW ^ Bool.Inverted);
-    pinMode(pin, OUTPUT);
-    return (1);
+  pin    = pinArg;
+  angle  = NO_ANGLE;
+  min16  = 34;
+  max16  = 150;
+  Bool.Inverted = Inverted;
+  digitalWrite(pin, LOW ^ Bool.Inverted);
+  pinMode(pin, OUTPUT);
+  return (1);
 }
 
 void SoftRcPulseOut::detach()
 {
-  pin    = NOT_ATTACHED;
+  pin = NOT_ATTACHED;
 }
 
 void SoftRcPulseOut::write(int angleArg)
 {
-    if (angleArg < 0)   angleArg = 0;
-    if (angleArg > 180) angleArg = 180;
-    angle = angleArg;
-    // bleh, have to use longs to prevent overflow, could be tricky if always a 16MHz clock, but not true
-    // That 64L on the end is the TCNT0 prescaler, it will need to change if the clock's prescaler changes,
-    // but then there will likely be an overflow problem, so it will have to be handled by a human.
+  if (angleArg < 0)   angleArg = 0;
+  if (angleArg > 180) angleArg = 180;
+  angle = angleArg;
+  // bleh, have to use longs to prevent overflow, could be tricky if always a 16MHz clock, but not true
+  // That 64L on the end is the TCNT0 prescaler, it will need to change if the clock's prescaler changes,
+  // but then there will likely be an overflow problem, so it will have to be handled by a human.
 #ifdef MS_TIMER_TICK_EVERY_X_CYCLES
-    pulse0 = (min16 * 16L * clockCyclesPerMicrosecond() + (max16 - min16) * (16L * clockCyclesPerMicrosecond()) * angle / 180L) / MS_TIMER_TICK_EVERY_X_CYCLES;
+  pulse0 = (min16 * 16L * clockCyclesPerMicrosecond() + (max16 - min16) * (16L * clockCyclesPerMicrosecond()) * angle / 180L) / MS_TIMER_TICK_EVERY_X_CYCLES;
 #else
-    pulse0 = (min16 * 16L * clockCyclesPerMicrosecond() + (max16 - min16) * (16L * clockCyclesPerMicrosecond()) * angle / 180L) / 64L;
+  pulse0 = (min16 * 16L * clockCyclesPerMicrosecond() + (max16 - min16) * (16L * clockCyclesPerMicrosecond()) * angle / 180L) / 64L;
 #endif
 }
 
 void SoftRcPulseOut::write_us(uint16_t PulseWidth_us)
 {
-    if ( PulseWidth_us < (min16 * 16)) PulseWidth_us = (min16 * 16);
-    if ( PulseWidth_us > (max16 * 16)) PulseWidth_us = (max16 * 16);
+  if ( PulseWidth_us < (min16 * 16)) PulseWidth_us = (min16 * 16);
+  if ( PulseWidth_us > (max16 * 16)) PulseWidth_us = (max16 * 16);
 #ifdef MS_TIMER_TICK_EVERY_X_CYCLES
-    pulse0 = (PulseWidth_us * clockCyclesPerMicrosecond()) / MS_TIMER_TICK_EVERY_X_CYCLES;
+  pulse0 = (PulseWidth_us * clockCyclesPerMicrosecond()) / MS_TIMER_TICK_EVERY_X_CYCLES;
 #else
-    pulse0 = (PulseWidth_us * clockCyclesPerMicrosecond()) / 64L;
+  pulse0 = (PulseWidth_us * clockCyclesPerMicrosecond()) / 64L;
 #endif
-    angle = map(PulseWidth_us, min16 * 16, max16 * 16, 0, 180);
+  angle = map(PulseWidth_us, min16 * 16, max16 * 16, 0, 180);
 }
 
 uint8_t SoftRcPulseOut::read()
 {
-    return angle;
+  return angle;
 }
 
 uint16_t SoftRcPulseOut::read_us()
 {
 #ifdef MS_TIMER_TICK_EVERY_X_CYCLES
-    return((pulse0 * MS_TIMER_TICK_EVERY_X_CYCLES) / clockCyclesPerMicrosecond());
+  return((pulse0 * MS_TIMER_TICK_EVERY_X_CYCLES) / clockCyclesPerMicrosecond());
 #else
-    return((pulse0 * 64L) / clockCyclesPerMicrosecond());
+  return((pulse0 * 64L) / clockCyclesPerMicrosecond());
 #endif
 }
 
@@ -221,12 +221,13 @@ uint8_t SoftRcPulseOut::attached()
 }
 
 /* Begin of Rcul support */
-uint8_t SoftRcPulseOut::RculIsSynchro()
+uint8_t SoftRcPulseOut::RculIsSynchro(uint8_t ClientIdx /*= RCUL_DEFAULT_CLIENT_IDX*/)
 {
+  ClientIdx = ClientIdx; /* Hope multi-clients will be never used! Otherwise, this does not work! */
   return(refresh());
 }
 
-void SoftRcPulseOut::RculSetWidth_us(uint16_t Width_us, uint8_t Ch /*= 255*/)
+void SoftRcPulseOut::RculSetWidth_us(uint16_t Width_us, uint8_t Ch /*= RCUL_NO_CH*/)
 {
   Ch = Ch; /* To avoid a warning at compilation time */
   write_us(Width_us);
@@ -239,7 +240,7 @@ uint16_t SoftRcPulseOut::RculGetWidth_us(uint8_t Ch)
 }
 /* End of Rcul support */
 
-uint8_t SoftRcPulseOut::refresh(bool force /* = false */)
+uint8_t SoftRcPulseOut::refresh(uint8_t force /* = false */)
 {
   uint8_t  RefreshDone = 0;
   uint8_t  count = 0, i = 0;
@@ -297,7 +298,6 @@ uint8_t SoftRcPulseOut::refresh(bool force /* = false */)
   noInterrupts();
   for ( i = 0; i < count; i++ ) digitalWrite( s[i]->pin, 1 ^ s[i]->Bool.Inverted );
   interrupts();
-
   uint8_t start = SOFT_RC_PULSE_OUT_TCNT;
   uint8_t now = start;
   uint8_t last = now;
