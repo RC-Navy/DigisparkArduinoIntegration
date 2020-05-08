@@ -15,6 +15,7 @@
 * 15/05/2015: Support for ATmega32U4 (Leonardo, micro, pro micro) added
 *             INT0, INT1, INT2, INT3 used as emulated Pin Change Interrupt
 * 15/05/2015: Fix a bug for the emulated Pin Change Interrupt pins (0, 1, 2 and 3) for ATmega32U4 (Leonardo, micro, pro micro)
+* 17/12/2018: TinyPinChange_UnregisterIsr() method added
 */
 
 #if defined(ARDUINO) && ARDUINO >= 100
@@ -103,18 +104,19 @@
 
 void    TinyPinChange_Init(void);
 int8_t  TinyPinChange_RegisterIsr(uint8_t Pin, void(*Isr)(void));
+uint8_t TinyPinChange_UnregisterIsr(uint8_t Pin, void(*Isr)(void));
 void    TinyPinChange_EnablePin(uint8_t Pin);
 void    TinyPinChange_DisablePin(uint8_t Pin);
 uint8_t TinyPinChange_GetPortEvent(uint8_t VirtualPortIdx);
 uint8_t TinyPinChange_GetCurPortSt(uint8_t VirtualPortIdx);
 #if defined(__AVR_ATmega32U4__)
-#define TinyPinChange_PinToMsk(Pin)				(((Pin) <= 3)?(_BV(digitalPinToInterrupt((Pin)))):(_BV(digitalPinToPCMSKbit((Pin)))))
+#define TinyPinChange_PinToMsk(Pin)                     (((Pin) <= 3)?(_BV(digitalPinToInterrupt((Pin)))):(_BV(digitalPinToPCMSKbit((Pin)))))
 #else
-#define TinyPinChange_PinToMsk(Pin)				_BV(digitalPinToPCMSKbit((Pin)))
+#define TinyPinChange_PinToMsk(Pin)                     _BV(digitalPinToPCMSKbit((Pin)))
 #endif
-#define TinyPinChange_Edge(VirtualPortIdx, Pin)		( TinyPinChange_GetPortEvent((VirtualPortIdx)) & TinyPinChange_PinToMsk((Pin)) )
-#define TinyPinChange_RisingEdge(VirtualPortIdx, Pin)		( TinyPinChange_Edge(VirtualPortIdx, Pin) &   TinyPinChange_GetCurPortSt((VirtualPortIdx))  ) 
-#define TinyPinChange_FallingEdge(VirtualPortIdx, Pin)		( TinyPinChange_Edge(VirtualPortIdx, Pin) & (~TinyPinChange_GetCurPortSt((VirtualPortIdx))) )
+#define TinyPinChange_Edge(VirtualPortIdx, Pin)         ( TinyPinChange_GetPortEvent((VirtualPortIdx)) & TinyPinChange_PinToMsk((Pin)) )
+#define TinyPinChange_RisingEdge(VirtualPortIdx, Pin)   ( TinyPinChange_Edge(VirtualPortIdx, Pin) &   TinyPinChange_GetCurPortSt((VirtualPortIdx))  ) 
+#define TinyPinChange_FallingEdge(VirtualPortIdx, Pin)  ( TinyPinChange_Edge(VirtualPortIdx, Pin) & (~TinyPinChange_GetCurPortSt((VirtualPortIdx))) )
 
 /*******************************************************/
 /* Application Programming Interface (API) en Francais */
@@ -122,6 +124,7 @@ uint8_t TinyPinChange_GetCurPortSt(uint8_t VirtualPortIdx);
 
 /*      Methodes en Francais                           	 English native methods */
 #define TinyPinChange_EnregistreFonctionInterruption		TinyPinChange_RegisterIsr
+#define TinyPinChange_DesenregistreFonctionInterruption		TinyPinChange_UnregisterIsr
 #define TinyPinChange_ActiveBroche				TinyPinChange_EnablePin
 #define TinyPinChange_DesactiveBroche				TinyPinChange_DisablePin
 #define TinyPinChange_RetourneEvenemenPort			TinyPinChange_GetPortEvent

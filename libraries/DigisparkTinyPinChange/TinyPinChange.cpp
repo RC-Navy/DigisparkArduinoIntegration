@@ -28,7 +28,7 @@
 *************************************************************************/
 typedef struct{
 
-	void			(*Isr[PIN_CHANGE_HANDLER_MAX_NB])(void);
+	void			(*Isr[PIN_CHANGE_HANDLER_MAX_NB])();
 	uint8_t			LoadedIsrNb;
 	uint8_t			Event;
 	uint8_t			PinPrev;
@@ -110,12 +110,13 @@ void TinyPinChange_Init(void)
 /*********************************************************************
 	PinChange RegisterIsr Function
 Input:
-	Pointer on a PinChange Function
+    Pin: Pin number
+    Isr: Pointer on a PinChange Function
 Output:
 	The associated VirtualPortIdx (0 to 2)
 	< 0 in case of failure
 *********************************************************************/
-int8_t TinyPinChange_RegisterIsr(uint8_t Pin, void(*Isr)(void))
+int8_t TinyPinChange_RegisterIsr(uint8_t Pin, void(*Isr)())
 {
 int8_t IsrIdx, PortIdx, AlreadyLoaded = 0;
 
@@ -174,6 +175,86 @@ int8_t IsrIdx, PortIdx, AlreadyLoaded = 0;
 	}
 #endif
 	return(PortIdx);
+}
+
+/*********************************************************************
+    PinChange UnregisterIsr Function
+Input:
+    Pin: Pin number
+    Isr: Pointer on a PinChange Function
+Output:
+    0: Unregister failure
+    1: OK, Isr unregistered
+*********************************************************************/
+uint8_t TinyPinChange_UnregisterIsr(uint8_t Pin, void(*Isr)())
+{
+    int8_t  IsrIdx, PortIdx, FoundIdx = -1;
+    uint8_t Ret = 0;
+    
+    PortIdx = DigitalPinToPortIdx(Pin);
+#if defined(__AVR_ATmega32U4__)
+	if(Pin >= 0 && Pin <= 3)
+	{
+#warning TO DO: implement TinyPinChange_UnregisterIsr ofr pin 0-3 of ATmega32U4
+	  /* INT0, INT1, INT2, INT3 used as emulated Pin Change Interrupt */
+	  switch(digitalPinToInterrupt(Pin))
+	  {
+	    case 0: /* Ext INT0 */
+//	    PinChange.Port[PortIdx].Isr[0] = Isr;
+//	    attachInterrupt(0, ExtInt0AsEmulatedPinChangeInt, CHANGE);
+	    break;
+	    
+	    case 1: /* Ext INT1 */
+//	    PinChange.Port[PortIdx].Isr[1] = Isr;
+//	    attachInterrupt(1, ExtInt1AsEmulatedPinChangeInt, CHANGE);
+	    break;
+	    
+	    case 2: /* Ext INT2 */
+//	    PinChange.Port[PortIdx].Isr[2] = Isr;
+//	    attachInterrupt(2, ExtInt2AsEmulatedPinChangeInt, CHANGE);
+	    break;
+	    
+	    case 3: /* Ext INT3 */
+//	    PinChange.Port[PortIdx].Isr[3] = Isr;
+//	    attachInterrupt(3, ExtInt3AsEmulatedPinChangeInt, CHANGE);
+	    break;
+	  }
+	}
+	else
+	{
+#endif
+    if(PortIdx >= 0)
+    {
+        for(IsrIdx = 0; IsrIdx < PinChange.Port[PortIdx].LoadedIsrNb; IsrIdx++)
+        {
+            if(PinChange.Port[PortIdx].Isr[IsrIdx] == Isr)
+            {
+                FoundIdx = IsrIdx;
+                break; /* Already loaded -> can be removed */
+            }
+        }
+        if(FoundIdx >= 0)
+        {
+            if(FoundIdx != (PinChange.Port[PortIdx].LoadedIsrNb - 1))
+            {
+                /* Not the last ISR loaded -> SHALL shift subsequent ISR to the left */
+                for(uint8_t Idx = FoundIdx; Idx < (PinChange.Port[PortIdx].LoadedIsrNb - 1); Idx++)
+                {
+                    PinChange.Port[PortIdx].Isr[Idx] = PinChange.Port[PortIdx].Isr[Idx + 1];
+                }
+            }
+            else
+            {
+                /* ISR is the last one: just decrement LoadedIsrNb */
+            }
+            PinChange.Port[PortIdx].LoadedIsrNb--;
+            Ret = 1;
+        }
+    }
+#if defined(__AVR_ATmega32U4__)
+	}
+#endif
+    return(Ret);
 }
 
 /*********************************************************************
