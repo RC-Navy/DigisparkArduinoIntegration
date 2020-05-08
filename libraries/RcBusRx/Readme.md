@@ -1,7 +1,7 @@
 RcBusRx library: a multiple decoder for RC serial buses
 ===============
 
-**RcBusRx** is a library designed to extract RC channels from RC serial bus frames. Actually, it supports, SBUS, SRXL, SUMD and IBUS.
+**RcBusRx** is a library designed to extract RC channels from RC serial bus frames. Actually, it supports SBUS, SRXL, SUMD and IBUS.
 
 Tip and Tricks:
 --------------
@@ -25,15 +25,17 @@ Constants for version management:
 	* **TINY_DBG_VERSION**: returns the library version (integer)
 	* **TINY_DBG_REVISION**: returns the library revision (integer)
 
+Other constants:
+---------------
 	* **SBUS_RX_SERIAL_CFG**: initialize serial port with this (eg: Serial1.begin(SBUS_RX_SERIAL_CFG)) for SBUS
 	* **SRXL_RX_SERIAL_CFG**: initialize serial port with this (eg: Serial1.begin(SRXL_RX_SERIAL_CFG)) for SRXL
 	* **SUMD_RX_SERIAL_CFG**: initialize serial port with this (eg: Serial1.begin(SUMD_RX_SERIAL_CFG)) for SUMD
 	* **IBUS_RX_SERIAL_CFG**: initialize serial port with this (eg: Serial1.begin(IBUS_RX_SERIAL_CFG)) for IBUS
 
-	* **RC_BUS_RX_SBUS**: Used to set SBUS protocol (RcNusRx.setProto(RC_BUS_RX_SBUS))
-	* **RC_BUS_RX_SRXL**: Used to set SRXL protocol (RcNusRx.setProto(RC_BUS_RX_SRXL))
-	* **RC_BUS_RX_SUMD**: Used to set SUMD protocol (RcNusRx.setProto(RC_BUS_RX_SUMD))
-	* **RC_BUS_RX_IBUS**: Used to set IBUS protocol (RcNusRx.setProto(RC_BUS_RX_IBUS))
+	* **RC_BUS_RX_SBUS**: Used to set SBUS protocol (RcBusRx.setProto(RC_BUS_RX_SBUS))
+	* **RC_BUS_RX_SRXL**: Used to set SRXL protocol (RcBusRx.setProto(RC_BUS_RX_SRXL))
+	* **RC_BUS_RX_SUMD**: Used to set SUMD protocol (RcBusRx.setProto(RC_BUS_RX_SUMD))
+	* **RC_BUS_RX_IBUS**: Used to set IBUS protocol (RcBusRx.setProto(RC_BUS_RX_IBUS))
 
 RcBusRxDemo usage :
 ------------------
