@@ -5,6 +5,7 @@
  Update 06/04/2015: Rcul support added (allows to create a virtual serial port over a PPM channel)
  Update 03/06/2015: add support for dynamic object creation/destruction
                    (createInstance, destroyInstance, createdInstanceNbmethods, softRcPulseOutById and getIdByPin methods added)
+ Update 15/12/2018: support for (optional) inverted pulse added, micros() used rather than millis() for period
  
  English: by RC Navy (2012) 
  =======
@@ -131,7 +132,7 @@ SoftRcPulseOut *SoftRcPulseOut::softRcPulseOutById(uint8_t ObjIdx)
       p = first;
       for(uint8_t i = 0; i < Idx ;i++)
       {
-	p = p->next;
+        p = p->next;
       }
       return(p);
     }
@@ -156,13 +157,14 @@ int8_t SoftRcPulseOut::getIdByPin(uint8_t Pin)
   return(Id);
 }
 
-uint8_t SoftRcPulseOut::attach(int pinArg)
+uint8_t SoftRcPulseOut::attach(uint8_t pinArg, uint8_t Inverted /*= 0*/)
 {
     pin    = pinArg;
     angle  = NO_ANGLE;
     min16  = 34;
     max16  = 150;
-    digitalWrite(pin, LOW);
+    Bool.Inverted = Inverted;
+    digitalWrite(pin, LOW ^ Bool.Inverted);
     pinMode(pin, OUTPUT);
     return (1);
 }
@@ -244,12 +246,12 @@ uint8_t SoftRcPulseOut::refresh(bool force /* = false */)
   uint16_t base = 0;
   SoftRcPulseOut *p;
   static uint32_t lastRefresh = 0;
-  uint32_t m = millis();
+  uint32_t m = micros();
   
   if(!force)
   {
     // if we haven't wrapped millis, and 20ms have not passed, then don't do anything
-    if ( (m - lastRefresh) < 20UL ) return(RefreshDone);
+    if ( (m - lastRefresh) < 20000UL ) return(RefreshDone);
   }
   RefreshDone = 1; //Ok: Refresh will be performed
   lastRefresh = m;
@@ -262,19 +264,19 @@ uint8_t SoftRcPulseOut::refresh(bool force /* = false */)
   for ( p = first; p != 0; p = p->next ) if ( p->pin != NOT_ATTACHED ) s[i++] = p;
 
   // bubblesort the SoftRcPulseOuts by pulse time, ascending order
-  s[0]->ItMasked = 0;
+  s[0]->Bool.ItMasked = 0;
   for(;;)
   {
     uint8_t moved = 0;
     for ( i = 1; i < count; i++ )
     {
-      s[i]->ItMasked = 0;
+      s[i]->Bool.ItMasked = 0;
       if ( s[i]->pulse0 < s[i - 1]->pulse0 )
       {
-	SoftRcPulseOut *t = s[i];
-	s[i] = s[i - 1];
-	s[i - 1] = t;
-	moved = 1;
+        SoftRcPulseOut *t = s[i];
+        s[i] = s[i - 1];
+        s[i - 1] = t;
+        moved = 1;
       }
     }
     if ( !moved ) break;
@@ -283,17 +285,17 @@ uint8_t SoftRcPulseOut::refresh(bool force /* = false */)
   {
     if ( abs(s[i]->pulse0 - s[i - 1]->pulse0) <= 5)
     {
-      s[i]->ItMasked = 1; /* 2 consecutive Pulses are close each other, so do not unmask interrupts between Pulses */
+      s[i]->Bool.ItMasked = 1; /* 2 consecutive Pulses are close each other, so do not unmask interrupts between Pulses */
     }
   }
   // turn on all the pins
-  // Note the timing error here... when you have many SoftwareServos going, the
+  // Note the timing error here... when you have many SoftRcPulseOuts going, the
   // ones at the front will get a pulse that is a few microseconds too long.
   // Figure about 4uS/SoftRcPulseOut after them. This could be compensated, but I feel
   // it is within the margin of error of software SoftRcPulseOuts that could catch
   // an extra interrupt handler at any time.
   noInterrupts();
-  for ( i = 0; i < count; i++ ) digitalWrite( s[i]->pin, 1);
+  for ( i = 0; i < count; i++ ) digitalWrite( s[i]->pin, 1 ^ s[i]->Bool.Inverted );
   interrupts();
 
   uint8_t start = SOFT_RC_PULSE_OUT_TCNT;
@@ -315,25 +317,25 @@ uint8_t SoftRcPulseOut::refresh(bool force /* = false */)
       now = SOFT_RC_PULSE_OUT_TCNT;
       if ( now < last ) base += 256;
       last = now;
-      if( !s[i]->ItMasked )
+      if( !s[i]->Bool.ItMasked )
       {
-	if( base + now > it)
-	{
-	  noInterrupts();
-	  s[i]->ItMasked = 1;
-	}
+        if( base + now > it)
+        {
+            noInterrupts();
+            s[i]->Bool.ItMasked = 1;
+        }
       }
       if ( base + now > go )
       {
-	digitalWrite( s[i]->pin, 0);
-	if( (i + 1) < count )
-	{
-	  if( !s[i + 1]->ItMasked )
-	  {
-	    interrupts();
-	  }
-	}else interrupts();
-	break;
+        digitalWrite( s[i]->pin, 0 ^ s[i]->Bool.Inverted);
+        if( (i + 1) < count )
+        {
+            if( !s[i + 1]->Bool.ItMasked )
+            {
+                interrupts();
+            }
+        }else interrupts();
+        break;
       }
     }
   }

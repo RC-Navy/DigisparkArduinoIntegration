@@ -12,15 +12,24 @@
  http://p.loussouarn.free.fr
 */
 
-enum {NIBBLE_0=0, NIBBLE_1, NIBBLE_2, NIBBLE_3, NIBBLE_4, NIBBLE_5, NIBBLE_6, NIBBLE_7, NIBBLE_8, NIBBLE_9, NIBBLE_A, NIBBLE_B, NIBBLE_C, NIBBLE_D, NIBBLE_E, NIBBLE_F, NIBBLE_I, NIBBLE_NB};
 /*
-        1024us                                                          2048us
-          |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-NIBBLE    0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F   I
+NIBBLE_WIDTH_US
+  <--->
+ 996                                                                     2004
+  |-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|-+-|
+    0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F   R   I
+    <--->
+    |   |                                                               |
+  1024 1080                                                           1976
+INTER_NIBBLE
 */
+enum {NIBBLE_0=0, NIBBLE_1, NIBBLE_2, NIBBLE_3, NIBBLE_4, NIBBLE_5, NIBBLE_6, NIBBLE_7, NIBBLE_8, NIBBLE_9, NIBBLE_A, NIBBLE_B, NIBBLE_C, NIBBLE_D, NIBBLE_E, NIBBLE_F, NIBBLE_R, NIBBLE_I, NIBBLE_NB};
 
-#define PULSE_WIDTH_US_MIN            1024
-#define PULSE_WIDTH_US(NibbleIdx)     (PULSE_WIDTH_US_MIN + ((NibbleIdx) * 64)) /* 2048 */
+#define NEUTRAL_WIDTH_US            1500
+#define NIBBLE_WIDTH_US             56
+#define FULL_EXCURSION_US           (NIBBLE_WIDTH_US * NIBBLE_NB)
+#define PULSE_MIN_US                (NEUTRAL_WIDTH_US - (FULL_EXCURSION_US / 2))
+#define PULSE_WIDTH_US(NibbleIdx)   (PULSE_MIN_US + (NIBBLE_WIDTH_US / 2)+ ((NibbleIdx) * NIBBLE_WIDTH_US))
 
 #define GET_PULSE_WIDTH_US(NibbleIdx) (uint16_t)pgm_read_word(&PulseWidth[(NibbleIdx)])
 
@@ -28,9 +37,9 @@ const uint16_t PulseWidth[] PROGMEM = {PULSE_WIDTH_US(NIBBLE_0), PULSE_WIDTH_US(
                                        PULSE_WIDTH_US(NIBBLE_4), PULSE_WIDTH_US(NIBBLE_5), PULSE_WIDTH_US(NIBBLE_6), PULSE_WIDTH_US(NIBBLE_7),
                                        PULSE_WIDTH_US(NIBBLE_8), PULSE_WIDTH_US(NIBBLE_9), PULSE_WIDTH_US(NIBBLE_A), PULSE_WIDTH_US(NIBBLE_B),
                                        PULSE_WIDTH_US(NIBBLE_C), PULSE_WIDTH_US(NIBBLE_D), PULSE_WIDTH_US(NIBBLE_E), PULSE_WIDTH_US(NIBBLE_F),
-                                       PULSE_WIDTH_US(NIBBLE_I)};
+                                       PULSE_WIDTH_US(NIBBLE_R), PULSE_WIDTH_US(NIBBLE_I)};
 
-static Rcul   *_Rcul = NULL; /* All the PpmTxSerial have the same TinyPpmGen */
+static Rcul   *_Rcul = NULL;
 RcTxSerial    *RcTxSerial::first = NULL;
 
 /*************************************************************************
@@ -38,7 +47,7 @@ RcTxSerial    *RcTxSerial::first = NULL;
 *************************************************************************/
 
 /* Constructor */
-RcTxSerial::RcTxSerial(Rcul *Rcul, uint8_t TxFifoSize, uint8_t Ch /* = 255 */)
+RcTxSerial::RcTxSerial(Rcul *Rcul, uint8_t Asynch, uint8_t TxFifoSize, uint8_t Ch /* = 255 */)
 {
 #ifdef PPM_TX_SERIAL_USES_POWER_OF_2_AUTO_MALLOC
   if(TxFifoSize > 128) TxFifoSize = 128; /* Must fit in a 8 bits  */
@@ -53,13 +62,16 @@ RcTxSerial::RcTxSerial(Rcul *Rcul, uint8_t TxFifoSize, uint8_t Ch /* = 255 */)
   _TxFifo = (char *)malloc(_TxFifoSize);
   if(_TxFifo != NULL)
   {
-    _Rcul = Rcul;
-    _Ch     = Ch;
-    _TxCharInProgress = 0;
-    _TxFifoTail = 0;
-    _TxFifoHead = 0;
-    next  = first;
-    first = this;
+    _Rcul                    = Rcul;
+    _Nibble.NbToSend         = Asynch + 1;
+    _Nibble.SentCnt          = 0;
+    _Nibble.TxInProgress     = 0;
+    _Nibble.TxCharInProgress = 0;
+    _Ch                      = Ch;
+    _TxFifoTail              = 0;
+    _TxFifoHead              = 0;
+    next                     = first;
+    first                    = this;
   }
 }
 
@@ -105,32 +117,45 @@ int RcTxSerial::peek()
 
 uint8_t RcTxSerial::process()
 {
-  uint8_t  Ret = 0;
-  uint16_t PulseWidth_us;
+  uint8_t    Ret = 0;
   RcTxSerial *t;
-
   if(_Rcul->RculIsSynchro())
   {
-    for ( t = first; t != 0; t = t->next )
+    for (t = first; t != 0; t = t->next)
     {
-      if(t->_TxCharInProgress)
+      if(!t->_Nibble.TxInProgress)
       {
-	PulseWidth_us = GET_PULSE_WIDTH_US(t->_TxChar & 0x0F); /* LSN */
-	t->_TxCharInProgress = 0;
+        t->_Nibble.TxInProgress = 1;
+        if(!t->_Nibble.TxCharInProgress)
+        {
+          /* Get next char to send */
+          if(t->TxFifoRead(&t->_TxChar))
+          {
+            t->_Nibble.CurIdx = ((t->_TxChar & 0xF0) >> 4); /* MSN first */
+            t->_Nibble.TxCharInProgress = 1;
+          }
+          else
+          {
+            t->_Nibble.CurIdx = NIBBLE_I; /* Nothing to transmit */
+          }
+        }
+        else
+        {
+          /* Tx Char in progress: send least significant nibble */
+          t->_Nibble.CurIdx = t->_TxChar & 0x0F; /* LSN */
+          t->_Nibble.TxCharInProgress = 0;
+        }
+        if(t->_Nibble.CurIdx == t->_Nibble.PrevIdx) t->_Nibble.CurIdx = NIBBLE_R; /* Repeat symbol */
+        t->_Nibble.PrevIdx = t->_Nibble.CurIdx;
       }
-      else
+      /* Send the Nibble or the Repeat or the Idle symbol */
+      _Rcul->RculSetWidth_us(GET_PULSE_WIDTH_US(t->_Nibble.CurIdx), t->_Ch); /* /!\ Ch as last argument /!\ */
+      t->_Nibble.SentCnt++;
+      if(t->_Nibble.SentCnt >= t->_Nibble.NbToSend)
       {
-	if(t->TxFifoRead(&t->_TxChar))
-	{
-	  PulseWidth_us = GET_PULSE_WIDTH_US((t->_TxChar & 0xF0) >> 4); /* MSN first */
-	  t->_TxCharInProgress = 1;
-	}
-	else
-	{
-	  PulseWidth_us = GET_PULSE_WIDTH_US(NIBBLE_I); /* Noting to transmit */
-	}
+        t->_Nibble.SentCnt = 0;
+        t->_Nibble.TxInProgress = 0;
       }
-      _Rcul->RculSetWidth_us(PulseWidth_us, t->_Ch); /* /!\ Ch as last argument /!\ */
     }
     Ret = 1;
   }

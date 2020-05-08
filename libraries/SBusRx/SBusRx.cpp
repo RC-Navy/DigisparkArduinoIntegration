@@ -1,20 +1,25 @@
+/*
+ English: by RC Navy (2016-2020)
+ =======
+ <SBusRx>: an asynchronous SBUS library. SBusRx is an SBUS frame decoder.
+ http://p.loussouarn.free.fr
+ V1.0: initial release
+ Francais: par RC Navy (2016-2020)
+ ========
+ <SBusRx>: une librairie SBUS asynchrone. SBusRx est un decodeur de trame SBUS.
+ http://p.loussouarn.free.fr
+ V1.0: release initiale
+*/
 #include <SBusRx.h>
 
 enum {SBUS_WAIT_FOR_0x0F = 0, SBUS_WAIT_FOR_END_OF_DATA, SBUS_WAIT_FOR_0x00};
 
 SBusRxClass SBusRx = SBusRxClass();
 
-#define millis8()          (uint8_t)(millis() & 0x000000FF)
-#define MAX_FRAME_TIME_MS  10
+#define millis8()           (uint8_t)(millis() & 0x000000FF)
+#define MAX_FRAME_TIME_MS   10
 
-typedef struct {
-  uint8_t
-          Reserved:   4, /* Bit 0 to 3 */
-          FailSafe:   1, /* Bit 4 */
-          FrameLost:  1, /* Bit 5 */
-          Ch18:       1, /* Bit 6 */
-          Ch17:       1; /* Bit 7 */
-}SBusFlagsSt_t;
+#define SBUS_BIT_PER_CH     11
 
 /*************************************************************************
                               GLOBAL VARIABLES
@@ -27,6 +32,7 @@ SBusRxClass::SBusRxClass()
   RxIdx    = 0;
   Synchro  = 0x00;
   StartMs  = millis8();
+  memset(Channel, 0, sizeof(Channel));
 }
 
 void SBusRxClass::serialAttach(Stream *RxStream)
@@ -53,25 +59,25 @@ void SBusRxClass::process(void)
         if(RxChar == 0x0F)
         {
           StartMs = millis8(); /* Start of frame */
-          RxIdx = 0;
+          RxIdx = SBUS_RX_DATA_NB - 1; // Trick: store from the end
           RxState = SBUS_WAIT_FOR_END_OF_DATA;
         }
         break;
 
         case SBUS_WAIT_FOR_END_OF_DATA:
         Data[RxIdx] = RxChar;
-        RxIdx++;
-        if(RxIdx >= SBUS_RX_DATA_NB) // 23
+        RxIdx--;
+        if(RxIdx == 255)
         {
           /* Check next byte is 0x00 */
-          RxState = SBUS_WAIT_FOR_0x00;	
+          RxState = SBUS_WAIT_FOR_0x00;
         }
         break;
 
         case SBUS_WAIT_FOR_0x00:
         if(RxChar == 0x00)
         {
-          if(RxIdx == SBUS_RX_DATA_NB) // 23
+          if(RxIdx == 255)
           {
             /* Data received with good synchro */
             updateChannels();
@@ -89,20 +95,20 @@ void SBusRxClass::process(void)
 
 void SBusRxClass::updateChannels(void)
 {
-  uint8_t  DataIdx = 0, DataBitIdx = 7, ChIdx = 0, ChBitIdx = 10;
-  
-  for(uint8_t GlobBitIdx = 0; GlobBitIdx < (SBUS_RX_CH_NB * 11); GlobBitIdx++)
+  uint8_t  DataIdx = SBUS_RX_DATA_NB - 1, DataBitIdx = 0, ChIdx = 0, ChBitIdx = 0;
+
+  for(uint8_t GlobBitIdx = 0; GlobBitIdx < (SBUS_RX_CH_NB * SBUS_BIT_PER_CH); GlobBitIdx++)
   {
     bitWrite(Channel[ChIdx], ChBitIdx, bitRead(Data[DataIdx], DataBitIdx));
-    DataBitIdx--; ChBitIdx--;
-    if(DataBitIdx == 255)
+    DataBitIdx++; ChBitIdx++;
+    if(DataBitIdx == 8)
     {
-        DataBitIdx = 7;
-        DataIdx++;
+        DataBitIdx = 0;
+        DataIdx--;
     }
-    if(ChBitIdx == 255)
+    if(ChBitIdx == SBUS_BIT_PER_CH)
     {
-        ChBitIdx = 10;
+        ChBitIdx = 0;
         ChIdx++;
     }
   }
@@ -135,48 +141,25 @@ uint16_t SBusRxClass::width_us(uint8_t Ch)
   return(Width_us);
 }
 
-uint8_t SBusRxClass::isSynchro(uint8_t SynchroClientMsk /*= SBUS_CLIENT(7)*/)
+uint8_t SBusRxClass::isSynchro(uint8_t SynchroClientIdx /*= 7*/)
 {
   uint8_t Ret;
   
-  Ret = !!(Synchro & SynchroClientMsk);
-  if(Ret) Synchro &= ~SynchroClientMsk; /* Clear indicator for the Synchro client */
+  Ret = !!(Synchro & RCUL_CLIENT_MASK(SynchroClientIdx));
+  if(Ret) Synchro &= ~RCUL_CLIENT_MASK(SynchroClientIdx); /* Clear indicator for the Synchro client */
   
   return(Ret);
 }
 
 uint8_t SBusRxClass::flags(uint8_t FlagId)
 {
-  SBusFlagsSt_t *Flags;
-  uint8_t Ret = 0;
-  
-  Flags = (SBusFlagsSt_t *)&Data[SBUS_RX_DATA_NB - 1];
-  
-  switch(FlagId)
-  {
-    case SBUS_RX_CH17:
-    Ret = Flags->Ch17;
-    break;
-    
-    case SBUS_RX_CH18:
-    Ret = Flags->Ch18;
-    break;
-    
-    case SBUS_RX_FRAME_LOST:
-    Ret = Flags->FrameLost;
-    break;
-    
-    case SBUS_RX_FAILSAFE:
-    Ret = Flags->FailSafe;
-    break;
-  }
-  return(Ret);
+  return(!!(Data[0] & FlagId));
 }
 
 /* Rcul support */
-uint8_t SBusRxClass::RculIsSynchro()
+uint8_t SBusRxClass::RculIsSynchro(uint8_t ClientIdx /*= RCUL_DEFAULT_CLIENT_IDX*/)
 {
-  return(isSynchro(SBUS_RX_CLIENT(6)));  
+  return(isSynchro(ClientIdx));  
 }
 
 uint16_t SBusRxClass::RculGetWidth_us(uint8_t Ch)

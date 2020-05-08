@@ -7,6 +7,7 @@
  Update 06/04/2015: RcTxPop support added (allows to create a virtual serial port over a PPM channel)
  Update 03/06/2015: add support for dynamic object creation/destruction
                     (createInstance, destroyInstance, createdInstanceNbmethods, softRcPulseOutById and getIdByPin methods added)
+ Update 15/12/2018: support for (optional) inverted pulse added, micros() used rather than millis() for period
 
  English: by RC Navy (2012/2015)
  =======
@@ -33,14 +34,21 @@
 #include <inttypes.h>
 
 #define SOFT_RC_PULSE_OUT_VERSION          2
-#define SOFT_RC_PULSE_OUT_REVISION         0
+#define SOFT_RC_PULSE_OUT_REVISION         1
 
 #define SOFT_RC_PULSE_OUT_INSTANCE_MAX_NB  15 /* Counter on 4 bits */
+
+typedef struct{
+  uint8_t
+                  ItMasked    :1,
+                  Inverted    :1,
+                  Reserved    :6;
+}BoolSt_t;
 
 class SoftRcPulseOut : public Rcul
 {
   private:
-    boolean               ItMasked;
+    BoolSt_t              Bool;       // ItMasked and Inverted flags;
     uint8_t               pin;
     uint8_t               angle;      // in degrees
     uint16_t              pulse0;     // pulse width in TCNT0 counts
@@ -50,7 +58,7 @@ class SoftRcPulseOut : public Rcul
     static                SoftRcPulseOut *first;
   public:
     SoftRcPulseOut();
-    uint8_t               attach(int);        // attach to a pin, sets pinMode, returns 0 on failure, won't
+    uint8_t               attach(uint8_t pinArg, uint8_t Inverted = 0);        // attach to a pin, sets pinMode, returns 0 on failure, won't
                                               // position the servo until a subsequent write() happens
     void                  detach();
     void                  write(int);         // specify the angle in degrees, 0 to 180

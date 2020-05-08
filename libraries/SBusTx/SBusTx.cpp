@@ -1,3 +1,15 @@
+/*
+ English: by RC Navy (2016-2020)
+ =======
+ <SBusTx>: an asynchronous SBUS library. SBusTx is an SBUS frame generator.
+ http://p.loussouarn.free.fr
+ V1.0: initial release
+ Francais: par RC Navy (2016-2020)
+ ========
+ <SBusTx>: une librairie SBUS asynchrone. SBusTx est un generateur de trame SBUS.
+ http://p.loussouarn.free.fr
+ V1.0: release initiale
+*/
 #include <SBusTx.h>
 
 SBusTxClass SBusTx = SBusTxClass();
@@ -7,14 +19,7 @@ SBusTxClass SBusTx = SBusTxClass();
 #define SBUS_TX_START_BYTE        0x0F
 #define SBUS_TX_END_BYTE          0x00
 
-typedef struct {
-  uint8_t
-          Reserved:   4, /* Bit 0 to 3 */
-          FailSafe:   1, /* Bit 4 */
-          FrameLost:  1, /* Bit 5 */
-          Ch18:       1, /* Bit 6 */
-          Ch17:       1; /* Bit 7 */
-}SBusFlagsSt_t;
+#define SBUS_BIT_PER_CH           11
 
 /*************************************************************************
                               GLOBAL VARIABLES
@@ -32,7 +37,7 @@ void SBusTxClass::serialAttach(Stream *TxStream, uint8_t FrameRateMs/* = SBUS_TX
   this->FrameRateMs = FrameRateMs;
 }
 
-uint8_t SBusTxClass::isSynchro(uint8_t SynchroClientMsk /*= SBUS_CLIENT(7)*/)
+uint8_t SBusTxClass::isSynchro(uint8_t SynchroClientIdx /*= 7*/)
 {
   uint8_t Ret;
   
@@ -43,25 +48,43 @@ uint8_t SBusTxClass::isSynchro(uint8_t SynchroClientMsk /*= SBUS_CLIENT(7)*/)
       Synchro = 0xFF;
     }
   }
-  Ret = !!(Synchro & SynchroClientMsk);
-  if(Ret) Synchro &= ~SynchroClientMsk; /* Clear indicator for the Synchro client */
+  Ret = !!(Synchro & RCUL_CLIENT_MASK(SynchroClientIdx));
+  if(Ret) Synchro &= ~RCUL_CLIENT_MASK(SynchroClientIdx); /* Clear indicator for the Synchro client */
   
   return(Ret);
 }
 
 void SBusTxClass::rawData(uint8_t Ch, uint16_t RawData)
 {
-  uint8_t  ChIdx, GlobStartBitIdx, DataByteIdx, DataBitIdx, RawDataBitIdx;
-  
+  uint8_t  ChIdx, RevGlobBitIdx, FirstByteIdx, StartFirstBit, ByteNb = 2, LocBitIdx;
+  uint8_t  ChByte[3]; /* Working buffer */
+
   if((Ch >= 1) && (Ch <= SBUS_TX_CH_NB))
   {
-    ChIdx           = Ch - 1;
-    GlobStartBitIdx = ChIdx * 11;
-    DataByteIdx     = GlobStartBitIdx / 8;
-    DataBitIdx      = GlobStartBitIdx % 8;
-    for(RawDataBitIdx = 0; RawDataBitIdx < 11; RawDataBitIdx++)
+    /* Here, we have to imagine Data[] is in reversed order */
+    /* Let's search the 2 or 3 bytes which contain the SBUS_BIT_PER_CH (11) bits of the Channel */
+    ChIdx         = Ch - 1;
+    RevGlobBitIdx = (ChIdx * SBUS_BIT_PER_CH);
+    FirstByteIdx  = RevGlobBitIdx / 8;
+    StartFirstBit = RevGlobBitIdx % 8;
+    ByteNb       += (StartFirstBit > (2 * 8) - SBUS_BIT_PER_CH);
+    /* Load the 2 or 3 Data bytes in ChByte[] */
+    for(uint8_t Idx = 0; Idx < ByteNb; Idx++)
     {
-      bitWrite(Data[DataByteIdx + ((DataBitIdx + RawDataBitIdx) / 8)], 7 - ((DataBitIdx + RawDataBitIdx) % 8), bitRead(RawData, 10 - RawDataBitIdx));
+      ChByte[Idx] = Data[FirstByteIdx + (ByteNb - 1) - Idx];
+    }
+    /* Load RawData in ChByte[] */
+    LocBitIdx = StartFirstBit;
+    for(uint8_t Idx = 0; Idx < SBUS_BIT_PER_CH; Idx++)
+    {
+      /* Write bits from left to right */
+      bitWrite(ChByte[ByteNb - 1 - (LocBitIdx / 8)], (LocBitIdx % 8), bitRead(RawData, Idx));
+      LocBitIdx++;
+    }
+    /* Load the 2 or 3 ChByte[] bytes in Data[] */
+    for(uint8_t Idx = 0; Idx < ByteNb; Idx++)
+    {
+      Data[FirstByteIdx + (ByteNb - 1) - Idx] = ChByte[Idx];
     }
   }
 
@@ -82,29 +105,8 @@ void SBusTxClass::width_us(uint8_t Ch, uint16_t Width_us)
 
 void SBusTxClass::flags(uint8_t FlagId, uint8_t FlagVal)
 {
-  SBusFlagsSt_t *Flags;
-  
-  Flags = (SBusFlagsSt_t *)&Data[SBUS_TX_DATA_NB - 1];
-  
-  switch(FlagId)
-  {
-    case SBUS_TX_CH17:
-    Flags->Ch17 = !!FlagVal;
-    break;
-    
-    case SBUS_TX_CH18:
-    Flags->Ch18 = !!FlagVal;
-    break;
-    
-    case SBUS_TX_FRAME_LOST:
-    Flags->FrameLost = !!FlagVal;
-    break;
-    
-    case SBUS_TX_FAILSAFE:
-    Flags->FailSafe = !!FlagVal;
-    break;
-  }
-  
+  if(FlagVal) Data[SBUS_TX_DATA_NB - 1] |=  FlagId;
+  else        Data[SBUS_TX_DATA_NB - 1] &= ~FlagId;
 }
 
 void SBusTxClass::sendChannels(void)
@@ -117,9 +119,9 @@ void SBusTxClass::sendChannels(void)
 }
 
 /* Rcul support */
-uint8_t SBusTxClass::RculIsSynchro()
+uint8_t SBusTxClass::RculIsSynchro(uint8_t ClientIdx /*= RCUL_DEFAULT_CLIENT_IDX*/)
 {
-  return(isSynchro(SBUS_TX_CLIENT(6)));  
+  return(isSynchro(ClientIdx));
 }
 
 uint16_t SBusTxClass::RculGetWidth_us(uint8_t Ch)
