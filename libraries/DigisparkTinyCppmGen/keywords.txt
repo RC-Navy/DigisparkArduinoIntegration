@@ -1,0 +1,23 @@
+#######################################
+# Syntax Coloring Map TinyCppmGen
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+TinyCppmGen	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+begin	KEYWORD2
+setChWidth_us	KEYWORD2
+isSynchro	KEYWORD2
+suspend	KEYWORD2
+resume	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+TINY_CPPM_GEN_POS_MOD	LITERAL1
+TINY_CPPM_GEN_NEG_MOD	LITERAL1
