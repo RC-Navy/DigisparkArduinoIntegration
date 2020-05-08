@@ -1,0 +1,23 @@
+#######################################
+# Syntax Coloring Map SrxlRx
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+SrxlRx	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+serialAttach	KEYWORD2
+process	KEYWORD2
+isSynchro	KEYWORD2
+rawData	KEYWORD2
+width_us	KEYWORD2
+channelNb	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
