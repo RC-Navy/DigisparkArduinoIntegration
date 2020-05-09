@@ -13,8 +13,9 @@
 #define SBUS_RX_SRXL_SUPPORT  1 // <-- Set here 1 for support or 0 to not support it
 #define SBUS_RX_SUMD_SUPPORT  1 // <-- Set here 1 for support or 0 to not support it
 #define SBUS_RX_IBUS_SUPPORT  1 // <-- Set here 1 for support or 0 to not support it
+#define SBUS_RX_JETI_SUPPORT  1 // <-- Set here 1 for support or 0 to not support it
 
-enum {RC_BUS_RX_SBUS = 0, RC_BUS_RX_SRXL, RC_BUS_RX_SUMD, RC_BUS_RX_IBUS, RC_BUS_RX_NB};
+enum {RC_BUS_RX_SBUS = 0, RC_BUS_RX_SRXL, RC_BUS_RX_SUMD, RC_BUS_RX_IBUS, RC_BUS_RX_JETI, RC_BUS_RX_NB};
 
 /* SBUS */
 /* /!\ Serial port shall be set to 100000, SERIAL_8E2 /!\ */
@@ -28,7 +29,7 @@ enum {RC_BUS_RX_SBUS = 0, RC_BUS_RX_SRXL, RC_BUS_RX_SUMD, RC_BUS_RX_IBUS, RC_BUS
 #define SBUS_RX_FAILSAFE      (1 << 3)
 
 /* SRXL */
-/* /!\ Serial port shall be set to 115200, SERIAL_8E2 /!\ */
+/* /!\ Serial port shall be set to 115200, SERIAL_8E2 and needs often a serial inverter /!\ */
 #define SRXL_RX_SERIAL_CFG    115200
 #define SRXL_RX_A1_CH_NB      12
 #define SRXL_RX_A2_CH_NB      16
@@ -42,6 +43,9 @@ enum {RC_BUS_RX_SBUS = 0, RC_BUS_RX_SRXL, RC_BUS_RX_SUMD, RC_BUS_RX_IBUS, RC_BUS
 /* IBUS */
 #define IBUS_RX_SERIAL_CFG    115200 // Frame send every 7 ms
 #define IBUS_RX_CH_NB         14
+
+/* JETI */
+#define JETI_RX_SERIAL_CFG    125000 // Frame send every ? ms
 
 typedef struct{
   uint8_t

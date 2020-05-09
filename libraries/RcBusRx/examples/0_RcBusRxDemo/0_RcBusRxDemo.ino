@@ -1,6 +1,6 @@
 #include <RcBusRx.h>
 
-uint8_t SBusVector[] = {
+const uint8_t SBusVector[] PROGMEM = {
   /* 00: Header */0x0f,
   /* 01: CH   */  0x01,0x04,
   /* 03: CH   */  0x20,0x00,
@@ -16,7 +16,7 @@ uint8_t SBusVector[] = {
   /* 23: CH   */  0x00,
   /* 24:Trailer */0x00};
 
-uint8_t SrxlVector[] = {
+const uint8_t SrxlVector[] PROGMEM = {
   /* 00: Header */ 0xA1,
   /* 01: CH01 */   0x08, 0x00,
   /* 03: CH02 */   0x07, 0xFF,
@@ -33,7 +33,7 @@ uint8_t SrxlVector[] = {
   /* 25: CRC  */   0xDE, 0xAC
                 };
 
-uint8_t SumdVector[] = {
+const uint8_t SumdVector[] PROGMEM = {
   /* 00: Header */ 0xA8,
   /* 01: ST     */ 0x01,
   /* 02: CH  Nb */ 0x08,
@@ -48,7 +48,7 @@ uint8_t SumdVector[] = {
   /* 19: CRC  */   0xD8, 0xB3
 };
 
-uint8_t iBusVector[] = {
+const uint8_t iBusVector[] PROGMEM = {
  /* 00: Length */  0x20,
  /* 01: Cmd code*/ 0x40,
  /* 02: CH01   */  0xDB, 0x05,
@@ -68,14 +68,40 @@ uint8_t iBusVector[] = {
  /* 30: CRC    */  0xDA, 0xF3
 };
 
+const uint8_t JetiVector[] PROGMEM = {
+ /* 00: Head 1 */  0x3E,
+ /* 01: Head 2 */  0x03,
+ /* 02: Msg Len*/  0x28,
+ /* 03: Pkt ID */  0x06,
+ /* 04: Dat Ch */  0x31,
+ /* 05: Blk Len*/  0x20,
+ /* 06: CH01   */  0x82, 0x1F,
+ /* 08: CH02   */  0x82, 0x1F,
+ /* 10: CH03   */  0x82, 0x1F,
+ /* 12: CH04   */  0x82, 0x1F,
+ /* 14: CH05   */  0x82, 0x1F,
+ /* 16: CH06   */  0x82, 0x1F,
+ /* 18: CH07   */  0x82, 0x1F,
+ /* 20: CH08   */  0x82, 0x1F,
+ /* 22: CH09   */  0x82, 0x1F,
+ /* 24: CH10   */  0x82, 0x1F,
+ /* 26: CH11   */  0x82, 0x1F,
+ /* 28: CH12   */  0x82, 0x1F,
+ /* 30: CH13   */  0x82, 0x1F,
+ /* 32: CH14   */  0x82, 0x1F,
+ /* 34: CH15   */  0x82, 0x1F,
+ /* 36: CH16   */  0x82, 0x1F,
+ /* 38: CRC    */  0x4F, 0xE2
+};
+
 typedef struct{
   uint8_t *Frame;
   uint8_t  FrameLen;
 }TestVectorSt_t;
 
-TestVectorSt_t TestVector[] = {{SBusVector, sizeof(SBusVector)}, {SrxlVector, sizeof(SrxlVector)}, {SumdVector, sizeof(SumdVector)}, {iBusVector, sizeof(iBusVector)}};
+TestVectorSt_t TestVector[] = {{SBusVector, sizeof(SBusVector)}, {SrxlVector, sizeof(SrxlVector)}, {SumdVector, sizeof(SumdVector)}, {iBusVector, sizeof(iBusVector)}, {JetiVector, sizeof(JetiVector)}};
 
-char    Proto = 's'; // s -> SBus, x -> SRXL, d -SumD
+char    Proto = 's'; // s -> SBus, x -> SRXL, d -> SumD, i -> IBUS, j -> JETI
 char    ProtoName[10];
 uint8_t TestVectIdx = 0;
 
@@ -95,7 +121,8 @@ void setup()
   Serial.println(F("- 'x' -> SRXL"));
   Serial.println(F("- 'd' -> SUMD"));
   Serial.println(F("- 'i' -> IBUS"));
-  delay(2000);
+  Serial.println(F("- 'j' -> JETI"));
+  delay(3000);
 }
 
 void loop()
@@ -117,11 +144,14 @@ void loop()
     Serial.print(F("\nSend "));Serial.print(ProtoName);Serial.print(F(" test frame: "));
     for(uint8_t Idx = 0; Idx < TestVector[TestVectIdx].FrameLen; Idx++)
     {
-      sprintf(Str, "0x%02X ", (uint8_t)TestVector[TestVectIdx].Frame[Idx]);
+      sprintf(Str, "0x%02X ", (uint8_t)pgm_read_byte(&TestVector[TestVectIdx].Frame[Idx]));
       Serial.print(Str);
     }
     Serial.println();
-    Serial1.write(TestVector[TestVectIdx].Frame, TestVector[TestVectIdx].FrameLen);
+    for(uint8_t Idx = 0; Idx < TestVector[TestVectIdx].FrameLen; Idx++)
+    {
+      Serial1.write((uint8_t)pgm_read_byte(&TestVector[TestVectIdx].Frame[Idx]));
+    }
     TxInProgress = 1;
   }
   RcBusRx.process(); /* Don't forget to call the SBusRx.process()! */
@@ -190,6 +220,14 @@ void ConfigForProto(char RxProto)
     RcBusRx.setProto(RC_BUS_RX_IBUS);
     strcpy_P(ProtoName, PSTR("IBUS"));
     TestVectIdx = 3;
+    Proto = RxProto;
+    break;
+
+    case 'j':
+    Serial1.begin(JETI_RX_SERIAL_CFG);
+    RcBusRx.setProto(RC_BUS_RX_JETI);
+    strcpy_P(ProtoName, PSTR("JETI"));
+    TestVectIdx = 4;
     Proto = RxProto;
     break;
 

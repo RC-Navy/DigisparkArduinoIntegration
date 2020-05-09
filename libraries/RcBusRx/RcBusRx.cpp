@@ -6,12 +6,22 @@ enum {
 /* SRXL */ RCBUSRX_SRXL_WAIT_FOR_0xA1_OR_0xA2, RCBUSRX_SRXL_WAIT_FOR_CHANNELS,        RCBUSRX_SRXL_WAIT_FOR_CHECKSUM,
 /* SUMD */ RCBUSRX_SUMD_WAIT_FOR_0xA8,         RCBUSRX_SRXL_WAIT_FOR_ST_0x01_OR_0x81, RCBUSRX_SRXL_WAIT_FOR_CH_NB,
            RCBUSRX_SUMD_WAIT_FOR_CHANNELS,     RCBUSRX_SUMD_WAIT_FOR_CHECKSUM,
-/* IBUS */ RCBUSRX_IBUS_WAIT_FOR_LEN_0x20,     RCBUSRX_IBUS_WAIT_FOR_CMD_0x40,        RCBUSRX_IBUS_WAIT_FOR_CHANNELS, RCBUSRX_IBUS_WAIT_FOR_CHECKSUM
+/* IBUS */ RCBUSRX_IBUS_WAIT_FOR_LEN_0x20,     RCBUSRX_IBUS_WAIT_FOR_CMD_0x40,        RCBUSRX_IBUS_WAIT_FOR_CHANNELS,
+           RCBUSRX_IBUS_WAIT_FOR_CHECKSUM,
+/* JETI */ RCBUSRX_JETI_WAIT_FOR_0x3E,         RCBUSRX_JETI_WAIT_FOR_0x03,            RCBUSRX_JETI_WAIT_FOR_MSG_LEN,
+           RCBUSRX_JETI_WAIT_FOR_PKT_ID,       RCBUSRX_JETI_WAIT_FOR_DATA_CH,         RCBUSRX_JETI_WAIT_FOR_DATA_LEN,
+           RCBUSRX_JETI_WAIT_FOR_CHANNELS,     RCBUSRX_JETI_WAIT_FOR_CHECKSUM
      };
 
 RcBusRxClass RcBusRx = RcBusRxClass();
 
-static uint16_t crc16_CCITT(uint16_t crc, uint8_t value); // For SRXL
+#if (SBUS_RX_SRXL_SUPPORT == 1) || (SBUS_RX_SUMD_SUPPORT == 1)
+static uint16_t crc16_CCITT(uint16_t crc, uint8_t value); // For SRXL and SUMD
+#endif
+
+#if (SBUS_RX_JETI_SUPPORT == 1)
+static uint16_t Jeti_crc16_CCITT(uint16_t crc, uint8_t value); // For JETI
+#endif
 
 #define millis8()            (uint8_t)(millis() & 0x000000FF)
 #define MIN_SLIENCE_TIME_MS  3 // We have to wait at least 2 ms of silence before listening for the protocol frame header
@@ -78,6 +88,11 @@ void RcBusRxClass::process(void)
         case RC_BUS_RX_IBUS:
         ChNb = IBUS_RX_CH_NB;
         RxState = RCBUSRX_IBUS_WAIT_FOR_LEN_0x20;
+        break;
+#endif        
+#if (SBUS_RX_JETI_SUPPORT == 1)
+        case RC_BUS_RX_JETI:
+        RxState = RCBUSRX_JETI_WAIT_FOR_0x3E;
         break;
 #endif        
       }
@@ -270,14 +285,94 @@ void RcBusRxClass::process(void)
         RxIdx++; /* Rx Checksum is not stored: just increment index */
         if(RxIdx >= ((2 * ChNb) + 2))
         {
-          if(ComputedCrc == ((RxChar << 8) + RawData[(2 * ChNb)])) // If Checksum = 0, frame is OK
+          if(ComputedCrc == (uint16_t)((RxChar << 8) + RawData[(2 * ChNb)])) // If Checksum = 0, frame is OK
           {
             /* Update channels from raw data */
             for(uint8_t Idx = 0; Idx < ChNb; Idx++)
             {
               WordPtr = (uint16_t *)&RawData[Idx * 2];
               Word = *WordPtr;
-              Channel[Idx] = Word; // With IBUS, RawData is doirectly Channel in us
+              Channel[Idx] = Word; // With IBUS, RawData is directly Channel in us
+            }
+            Synchro  = 0xFF;
+            Finished = 1;
+          }
+          RxState = RCBUSRX_IDLE;
+        }
+        break;
+#endif
+#if (SBUS_RX_JETI_SUPPORT == 1)
+        case RCBUSRX_JETI_WAIT_FOR_0x3E:
+        if(RxChar == 0x3E)
+        {
+          ComputedCrc = 0;
+          ComputedCrc = Jeti_crc16_CCITT(ComputedCrc, RxChar); // 0x3E header is not stored to save RAM
+          RxState = RCBUSRX_JETI_WAIT_FOR_0x03;
+        }
+        else RxState = RCBUSRX_IDLE;
+        break;
+
+        case RCBUSRX_JETI_WAIT_FOR_0x03:
+        if(RxChar == 0x03)
+        {
+          ComputedCrc = Jeti_crc16_CCITT(ComputedCrc, RxChar); // 0x03 header is not stored to save RAM
+          RxState = RCBUSRX_JETI_WAIT_FOR_MSG_LEN;
+        }
+        else RxState = RCBUSRX_IDLE;
+        break;
+
+        case RCBUSRX_JETI_WAIT_FOR_MSG_LEN:
+        ComputedCrc = Jeti_crc16_CCITT(ComputedCrc, RxChar); // not stored to save RAM
+        RxState = RCBUSRX_JETI_WAIT_FOR_PKT_ID;
+        break;
+
+        case RCBUSRX_JETI_WAIT_FOR_PKT_ID:
+        ComputedCrc = Jeti_crc16_CCITT(ComputedCrc, RxChar); // not stored to save RAM
+        RxState = RCBUSRX_JETI_WAIT_FOR_DATA_CH;
+        break;
+
+        case RCBUSRX_JETI_WAIT_FOR_DATA_CH:
+        if(RxChar == 0x31) // SHALL be 0x31 (Data ID for channels)
+        {
+          ComputedCrc = Jeti_crc16_CCITT(ComputedCrc, RxChar); // 0x31 header is not stored to save RAM
+          RxState = RCBUSRX_JETI_WAIT_FOR_DATA_LEN;
+        }
+        else RxState = RCBUSRX_IDLE;
+        break;
+
+        case RCBUSRX_JETI_WAIT_FOR_DATA_LEN:
+        if((RxChar >= (4 * 2)) && (RxChar <= (16 * 2))) // 4 to 16 channels?
+        {
+          ChNb  = RxChar / 2;
+          RxIdx = 0;
+          ComputedCrc = Jeti_crc16_CCITT(ComputedCrc, RxChar); // not stored to save RAM
+          RxState = RCBUSRX_JETI_WAIT_FOR_CHANNELS;
+        }
+        else RxState = RCBUSRX_IDLE;
+        break;
+
+        case RCBUSRX_JETI_WAIT_FOR_CHANNELS:
+        RawData[RxIdx++] = RxChar;
+        ComputedCrc = Jeti_crc16_CCITT(ComputedCrc, RxChar);
+        if(RxIdx >= (2 * ChNb))
+        {
+          RxState = RCBUSRX_JETI_WAIT_FOR_CHECKSUM;
+        }
+        break;
+
+        case RCBUSRX_JETI_WAIT_FOR_CHECKSUM:
+        RawData[RxIdx] = RxChar;
+        RxIdx++; /* Rx Checksum is not stored: just increment index */
+        if(RxIdx >= ((2 * ChNb) + 2))
+        {
+          if(ComputedCrc == (uint16_t)((RxChar << 8) + RawData[(2 * ChNb)])) // If Checksum = 0, frame is OK
+          {
+            /* Update channels from raw data */
+            for(uint8_t Idx = 0; Idx < ChNb; Idx++)
+            {
+              WordPtr = (uint16_t *)&RawData[Idx * 2];
+              Word = *WordPtr;
+              Channel[Idx] = Word >> 3; // With JETI, RawData is Channel in us x 8
             }
             Synchro  = 0xFF;
             Finished = 1;
@@ -316,6 +411,11 @@ uint16_t RcBusRxClass::rawData(uint8_t Ch)
       WordPtr = (uint16_t *)&RawData[Ch * 2];
       OneRawData = HTONS(*WordPtr);
       break;
+      
+      case RC_BUS_RX_JETI:
+      WordPtr = (uint16_t *)&RawData[Ch * 2];
+      OneRawData = *WordPtr;
+      break;
     }
   }
   return(OneRawData);
@@ -337,6 +437,7 @@ uint16_t RcBusRxClass::width_us(uint8_t Ch)
       case RC_BUS_RX_SRXL:
       case RC_BUS_RX_SUMD:
       case RC_BUS_RX_IBUS:
+      case RC_BUS_RX_JETI:
       Width_us = Channel[Ch];
       break;
       
@@ -362,14 +463,14 @@ uint8_t RcBusRxClass::flags(uint8_t FlagId)
   uint8_t Flag = 0;
   switch(Info.Proto)
   {
-#if (SBUS_RX_IBUS_SUPPORT == 1)
+#if (SBUS_RX_SBUS_SUPPORT == 1)
     case RC_BUS_RX_SBUS:
     Flag = !!(RawData[0] & FlagId);
     break;
 #endif
 #if (SBUS_RX_SUMD_SUPPORT == 1)
     case RC_BUS_RX_SUMD:
-      FlagId = FlagId; // To avoid a compilation warning
+    FlagId = FlagId; // To avoid a compilation warning
     Flag = Info.FailSafe;
     break;
 #endif
@@ -419,6 +520,7 @@ void RcBusRxClass::updateChannels(void)
 
 }
 
+#if (SBUS_RX_SRXL_SUPPORT == 1) || (SBUS_RX_SUMD_SUPPORT == 1)
 static uint16_t crc16_CCITT(uint16_t crc, uint8_t value)
 {
   uint8_t i;
@@ -437,3 +539,17 @@ static uint16_t crc16_CCITT(uint16_t crc, uint8_t value)
   }
   return crc;
 }
+#endif
+
+#if (SBUS_RX_JETI_SUPPORT == 1)
+static uint16_t Jeti_crc16_CCITT(uint16_t crc, uint8_t data)
+{
+  uint16_t ret_val;
+  data ^= (uint8_t)(crc) & (uint8_t)(0xFF);
+  data ^= data << 4;
+  ret_val = ((((uint16_t)data << 8) | ((crc & 0xFF00) >> 8))
+          ^ (uint8_t)(data >> 4)
+          ^ ((uint16_t)data << 3));
+  return ret_val;
+}
+#endif
