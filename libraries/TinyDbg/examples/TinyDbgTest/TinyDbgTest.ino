@@ -50,5 +50,6 @@ void Function1(void)
   i16WATCH(LocalVar);
   strWATCH(MyGlobalString);
   i32WATCH(LocalVar2);
-  BREAK(16); /* Third breakpoint */
+  BREAK(4); /* Third breakpoint */
 }
+
