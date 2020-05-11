@@ -36,7 +36,7 @@ void loop()
   BREAK(2); /* Second breakpoint */
   if(millis() - StartMs >= 300) /* Heart beat */
   {
-    BREAK(3);
+    BREAK(3); /* Third breakpoint */
     StartMs = millis();
     digitalWrite(13, !digitalRead(13));
   }
@@ -45,11 +45,9 @@ void loop()
 void Function1(void)
 {
   int16_t LocalVar = 0x1040;
-  int32_t LocalVar2 = 0x80000002;
   /* Declare the variables to watch */
   i16WATCH(LocalVar);
   strWATCH(MyGlobalString);
-  i32WATCH(LocalVar2);
-  BREAK(4); /* Third breakpoint */
+  BREAK(4); /* Fourth breakpoint */
 }
 
